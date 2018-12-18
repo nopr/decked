@@ -1,6 +1,8 @@
 <template>
   <div class="EnemyArea" v-bind:data-target="targetable">
-    <Enemy v-bind:enemy="enemy" v-on:click.native="target" />
+    <Container v-on:drop="drop">
+      <Enemy v-bind:enemy="enemy" v-on:click.native="target" />
+    </Container>
     <div class="intent" v-bind:data-state="enemy.intent.state">
       <span v-if="enemy.intent.hint" class="hint">{{enemy.intent.hint}}</span>
     </div>
@@ -11,24 +13,31 @@
   import EventBus from '@/eventbus';
   import Enemy from '@/components/Enemy.vue';
 
+  import { Container } from 'vue-smooth-dnd';
+
   export default {
     name: 'EnemyArea',
     props: ['enemy', 'index'],
-    components: { Enemy },
+    components: { Enemy, Container },
     data() {
       return {
         targetable: false,
-        active: null,
+        active_card: null,
+        active_index: null,
       }
     },
     methods: {
+      drop() {
+        console.log('dropped on enemy!');
+      },
       target() {
         if (this.targetable) {
-          this.active = null;
+          this.active_card = null;
+          this.active_index = null;
           this.targetable = false;
           EventBus.$emit('Card:Play', {
-            card: this.active.card,
-            index: this.active.index,
+            card: this.active_card,
+            index: this.active_index,
             target: {
               type: 'enemy',
               index: this.index
@@ -44,7 +53,8 @@
       console.log('EnemyArea.mounted')
       EventBus.$on('Card:ChooseTarget', (data) => {
         this.targetable = true;
-        this.active = data;
+        this.active_card = data.card;
+        this.active_index = data.index;
       });
     },
     updated() {

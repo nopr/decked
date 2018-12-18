@@ -3,6 +3,17 @@
     <div class="BattleIntro">
       <p>{{ battle.encounter }}</p>
     </div>
+    <div class="DragEnemy" v-for="(enemy, key) in battle.enemies" v-bind:key="key">
+      <div>{{enemy.name}}</div>
+      <Container class="DragEnemyContainer" group-name="1" v-on:drop="drop_enemy">
+        <Draggable class="area"></Draggable>
+      </Container>
+    </div>
+    <Container group-name="1" class="BattleArea" v-on:drop="drop_stack">
+      <Draggable v-for="card in player.cards" v-bind:key="card.id" >
+        <div class="draggable-item">{{ card.name }}</div>
+      </Draggable>
+    </Container>
     <div class="BattleEnemies">
       <EnemyArea v-for="(enemy, key) in battle.enemies" v-bind:key="key" v-bind:index="key" v-bind:enemy="enemy" />
     </div>
@@ -15,6 +26,8 @@
 
 <script>
   import EventBus from '@/eventbus';
+
+  import { Container, Draggable } from 'vue-smooth-dnd';
 
   import EnemyArea from '@/components/EnemyArea.vue';
   import PlayerArea from '@/components/PlayerArea.vue';
@@ -31,6 +44,15 @@
       },
     },
     methods: {
+      drop_stack(a) {
+        console.log('dropped stack');
+      },
+      drop_enemy(a) {
+        console.log('dropped enemy');
+      },
+      drop_anywhere(a) {
+        console.log('dropped anywhere');
+      },
       async mount() {
         await this.battle_setup();
         await this.battle_ready();
@@ -61,7 +83,7 @@
       },
     },
     components: {
-      EnemyArea, PlayerArea, Player
+      EnemyArea, PlayerArea, Player, Container, Draggable
     },
     created() {
       console.log('Battle.created')
@@ -88,6 +110,7 @@
       position: absolute;
       transform: translateX(-50%) translateY(-50%);
       transition: opacity 1s;
+      opacity: 0;
       left: 50%;
       top: 50%;
     }
@@ -125,5 +148,21 @@
       .Player { opacity: 1; transform: translateY(0); }
     }
 
+  }
+
+  .DragEnemy {
+    border: 1px solid black;
+    padding: 10px;
+    position: relative;
+    .DragEnemyContainer {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      & > * {
+        opacity: 0;
+      }
+    }
   }
 </style>

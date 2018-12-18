@@ -6,9 +6,10 @@
         <Card v-for="card in deck.cards" v-bind:key="'deck'+card.id" v-bind:data-key="card.id" v-bind:card="card" small="true" />
       </transition-group>
     </div>
+    </Container>
     <div class="hand">
       <transition-group class="list" name="hand-card" tag="div" v-bind:duration="250">
-        <Card v-for="(card, index) in hand.cards" v-on:click.native="attempt(card, index)" v-bind:data-playing="playing === index" v-bind:key="card.id" v-bind:data-key="card.id" v-bind:card="card" />
+        <Card v-for="(card, index) in hand.cards" v-bind:key="card.id" v-bind:data-playing="playing === index" v-bind:data-key="card.id" v-bind:card="card" />
       </transition-group>
     </div>
     <div class="pile" v-bind:data-state="pile.state">
@@ -26,9 +27,11 @@
   import EventBus from '@/eventbus';
   import Card from './Card.vue';
 
+  import { Container, Draggable } from 'vue-smooth-dnd';
+
   export default {
     name: 'PlayerArea',
-    components: { Card },
+    components: { Container, Draggable, Card },
     data() {
       return {
         energy: 0,
@@ -45,6 +48,9 @@
           state: null,
           cards: [],
         },
+        drag_options: {
+          sort: false,
+        }
       }
     },
     computed: {
@@ -53,6 +59,9 @@
       }
     },
     methods: {
+      drop_back() {
+        console.log('drop back')
+      },
       async fill(cards) {
         for (let card in cards) {
           await this.gain(cards[card]);
@@ -195,8 +204,9 @@
       // });
       EventBus.$on('Card:Play', (data) => {
         console.log("card play", data)
-        this.$store.dispatch('Battle_Play_Card', data);
-        this.play(data.card, data.index);
+        this.$store.dispatch('Battle_Play_Card', data).then(() => {
+          this.play(data.card, data.index);
+        });
       });
     },
     updated() {
@@ -346,8 +356,8 @@
         transition: all 0.25s ease, top 0.25s;
         margin: 0 3px;
       }
-      .Card[data-playing] {
-        transform: translateY(-100px);
+      .Card.sortable-ghost {
+        opacity: 0;
       }
       .hand-card-enter {
         opacity: 0;
