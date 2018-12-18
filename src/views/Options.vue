@@ -1,6 +1,26 @@
 <template>
   <div class="Options">
-    <router-link to="/">Back</router-link>
-    <h1>This is an about page</h1>
+    <h1>options</h1>
   </div>
 </template>
+
+<script>
+  export default {
+    name: 'Options',
+    computed: {},
+    components: {},
+    methods: {},
+    created() {
+      console.log('Options.created')
+    },
+    mounted() {
+      console.log('Options.mounted')
+    },
+    updated() {
+      console.log('Options.updated')
+    },
+    destroyed() {
+      console.log('Options.destroyed')
+    }
+  };
+</script>

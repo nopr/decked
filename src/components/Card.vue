@@ -1,22 +1,22 @@
 <template>
-  <div class="Card" v-bind:data-type="card.type">
-    <div class="cost">
-      <span>{{ card.cost }}</span>
-      <icon name="bolt" />
-    </div>
+  <div v-bind:class="['Card', { 'small': small }]">
+    <div class="cost">{{ card.cost }}</div>
     <div class="face">
-      <div class="about">
-        <div class="name">{{ card.name }}</div>
-        <div class="text" v-html="card.text" />
-      </div>
+      <div class="name">{{ card.name }}</div>
+      <div class="text" v-html="card.text"></div>
     </div>
+    <div class="type">{{ card.type }}</div>
   </div>
 </template>
 
 <script>
   export default {
     name: 'Card',
-    props: ['card', 'index'],
+    props: {
+      card: null,
+      index: null,
+      small: false,
+    },
     created() {
       console.log('Card.created')
     },
@@ -35,56 +35,67 @@
 <style lang="scss">
   .Card {
 
-    cursor: pointer;
+    display: inline-flex;
+    flex-flow: column;
+    justify-content: space-between;
+    align-content: center;
 
     box-sizing: border-box;
-    transition: all 0.25s;
+    text-align: center;
+    border: 5px solid white;
+    background: #eee;
+    border-radius: 10px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+    width: 110px;
+    height: 160px;
+    min-width: 110px;
+    transition: all 0.25s ease, top 0.25s;
     position: relative;
-    overflow: hidden;
-    display: flex;
-    flex-flow: column;
-    overflow: hidden;
-    justify-content: center;
+    cursor: pointer;
 
-    width: 140px;
-    height: 180px;
-    min-width: 0;
-    max-width: 140px;
-
-    .face {
-      margin: 5px;
-      height: 100%;
-      display: flex;
-      flex-flow: column;
-      justify-content: center;
-      padding: 5px;
-      border: 5px solid white;
-      background: #ccc;
-      border-radius: 15px;
-      box-shadow: 0 1px 2px 1px rgba(0,0,0,0.15);
+    &.small {
+      width: 50px;
+      height: 75px;
+      min-width: 50px;
+      border: 2px solid white;
+      background:#333;
+      border-radius: 5px;
+      box-shadow: 0 1px 1px #aaa;
+      .name, .text, .type, .cost { display: none; }
     }
+
     .name {
-      font-size: 16px;
+      font-size: 13px;
       font-weight: 600;
-      text-align: center;
-      color: white;
-      text-shadow: 1px 1px rgba(0,0,0,0.25);
+      text-shadow: 1px 1px 0 white;
+      color: #333;
     }
     .text {
-      font-size: 12px;
+      font-size: 11px;
       text-align: center;
       font-style: italic;
+      line-height: 15px;
+      padding: 0 5px;
+    }
+    .type {
+      font-size: 8px;
+      line-height: 8px;
+      letter-spacing: 1px;
+      font-weight: bold;
+      text-transform: uppercase;
+      padding-bottom: 10px;
+      color: #aaa;
     }
     .cost {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      display: flex;
-      flex-flow: column;
-      font-weight: 600;
-      opacity: 0.5;
-      font-size: 14px;
-      line-height: 14px;
+      font-weight: 900;
+      font-size: 12px;
+      line-height: 12px;
+      background: white;
+      width: 1em;
+      color: #333;
+      padding-right: 5px;
+      padding-bottom: 5px;
+      border-radius: 0 0 10px 0;
     }
 
   }

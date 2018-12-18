@@ -1,6 +1,7 @@
 import Vue from 'vue';
 import Router from 'vue-router';
-import Menu from './views/Menu.vue';
+import Main from './views/Main.vue';
+import Create from './views/Create.vue';
 import Game from './views/Game.vue';
 import Options from './views/Options.vue';
 
@@ -12,8 +13,13 @@ export default new Router({
   routes: [
     {
       path: '/',
-      name: 'menu',
-      component: Menu,
+      name: 'main',
+      component: Main,
+    },
+    {
+      path: '/create',
+      name: 'create',
+      component: Create,
     },
     {
       path: '/game',

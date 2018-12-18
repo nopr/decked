@@ -1,13 +1,8 @@
 <template>
-  <div class="Enemy" v-if="enemy">
+  <div class="Enemy">
     <div class="about">
       <span class="name">{{enemy.name}}</span>
       <span class="title">{{enemy.title}}</span>
-    </div>
-    <div class="effects">
-      <span class="effect" v-for="(effect, key) in enemy.effects" v-bind:key="key">
-        {{ effect.name }}: {{ effect.value }}
-      </span>
     </div>
     <div class="health">
       <span class="current">{{enemy.health.current}}</span>
@@ -19,11 +14,7 @@
 <script>
   export default {
     name: 'Enemy',
-    computed: {
-      enemy() {
-        return this.$store.state.field.enemy;
-      }
-    },
+    props: ['enemy'],
     created() {
       console.log('Enemy.created')
     },
@@ -42,10 +33,10 @@
 <style lang="scss">
   .Enemy {
 
-    background: #eee;
-    border-radius: 4px;
+    background: #ccc;
+    border-radius: 5px;
     position: relative;
-    margin: 15px;
+    margin: 5px;
 
     display: flex;
     align-items: center;

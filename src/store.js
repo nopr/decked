@@ -13,9 +13,15 @@ import {
   extras,
 } from './assets/flavour';
 
-import EnemiesWeak from '@/assets/enemies/weak';
+import EncountersLevel1 from '@/assets/encounters/level1';
+
 import warrior from '@/assets/roles/warrior';
 
+import GenerateArea from '@/store/area';
+
+const encounters = {
+  1: EncountersLevel1,
+};
 
 const classes = [];
 classes.push(warrior);
@@ -25,17 +31,26 @@ Vue.use(VueLodash, { name: 'utility' });
 
 export default new Vuex.Store({
   state: {
+    gamestate: 'intro',
+    progress: {
+      step: null,
+      point: null,
+    },
+    level: 1,
     role: null,
-    event: 'map',
+    area: {
+      steps: [],
+      lines: [],
+      history: [],
+      active_step: null,
+      active_point: null,
+    },
     battle: {
       turn: 0,
+      ready: false,
       energy: 0,
-    },
-    field: {
-      deck: [],
-      hand: [],
-      pile: [],
-      enemy: null,
+      encounter: null,
+      enemies: [],
     },
     player: null,
   },
@@ -135,6 +150,73 @@ export default new Vuex.Store({
     },
   },
   actions: {
+
+    GameState(context, value) {
+      Vue.set(context.state, 'gamestate', value);
+    },
+
+    Area_Create(context) {
+      const area = GenerateArea(4 + context.state.level);
+
+      Vue.set(context.state.area, 'history', []);
+      Vue.set(context.state.area, 'active_step', null);
+      Vue.set(context.state.area, 'active_point', null);
+      Vue.set(context.state.area, 'steps', area.steps);
+      Vue.set(context.state.area, 'lines', area.lines);
+    },
+
+    Area_Go(context, data) {
+      Vue.set(context.state.progress, 'step', data.step);
+      Vue.set(context.state.progress, 'point', data.point);
+
+      const point = context.state.area.steps[data.step][data.point];
+
+      Vue.set(context.state, 'gamestate', point.type);
+    },
+
+    Battle_Setup(context) {
+      const encounter = Vue.utility.sample(encounters[context.state.level]);
+
+      Vue.set(context.state.battle, 'turn', 0);
+      Vue.set(context.state.battle, 'enemies', []);
+      Vue.set(context.state.battle, 'encounter', null);
+      Vue.set(context.state.battle, 'state', 'loading');
+
+      Vue.utility.each(encounter.enemies, (enemy) => {
+        const encountered = new Actors.Enemy(enemy);
+        context.state.battle.enemies.push(encountered);
+      });
+      Vue.set(context.state.battle, 'encounter', encounter.description);
+    },
+
+    Battle_Ready(context) {
+      Vue.set(context.state.battle, 'state', 'ready');
+    },
+
+    Battle_Start(context) {
+      // Set the correct amount of energy
+      Vue.set(context.state.battle, 'energy', context.state.player.energy);
+
+      // For each enemy in the battle
+      Vue.utility.each(context.state.battle.enemies, (enemy) => {
+        const name = Vue.utility.sample(enemy.sequence[0]);
+        const intent = enemy.intents[name];
+        Vue.set(enemy.intent, 'phase', 0);
+        Vue.set(enemy.intent, 'state', 'ready');
+        Vue.set(enemy.intent, 'name', name);
+        Vue.set(enemy.intent, 'hint', intent.hint);
+      });
+
+      Vue.set(context.state.battle, 'turn', 1);
+      Vue.set(context.state.battle, 'state', 'start');
+    },
+
+    Battle_Play_Card(context, data) {
+      console.log('Battle_play_card', data);
+
+      
+    },
+
     create_player(context) {
       const role = Vue.utility.sample(classes);
       const gender = Vue.utility.sample(genders);
@@ -166,13 +248,13 @@ export default new Vuex.Store({
       Vue.set(context.state, 'player', Player);
 
       Vue.utility.each(deck, (card) => {
-        context.commit('add_card', context.state.role.cards[card]);
+        const source = Object.assign({}, context.state.role.cards[card]);
+        context.state.player.cards.push(source);
       });
-      Vue.utility.each(attributes, (attribute) => {
-        Vue.utility.each(attribute.effects, (effect) => {
-          context.dispatch(effect.name, effect.value);
-        });
-      });
+
+      for (let n = 0; n < context.state.player.cards.length; n += 1) {
+        Vue.set(context.state.player.cards[n], 'id', n);
+      }
     },
     player_add_card(context, card) {
       context.commit('add_card', context.state.role.cards[card]);
@@ -217,31 +299,6 @@ export default new Vuex.Store({
         console.log('you lose');
         context.dispatch('lose_battle');
       }
-    },
-    async start_battle(context) {
-      const { cards } = context.state.player;
-
-      context.commit('field_get_enemy');
-
-      Vue.set(context.state.field.deck, []);
-      Vue.set(context.state.field.hand, []);
-      Vue.set(context.state.field.pile, []);
-      Vue.utility.each(cards, (card) => {
-        context.commit('field_add_to_deck', card);
-      });
-
-      context.commit('field_shuffle_deck');
-      context.commit('field_set_energy', 3);
-      context.dispatch('draw_cards', 5);
-
-      Vue.set(context.state, 'event', 'battle');
-
-      // Set the correct amount of energy
-      Vue.set(context.state.battle, 'energy', context.state.player.energy);
-      
-      // Get an enemy sequence intent
-      const intent = Vue.utility.sample(context.state.field.enemy.sequence);
-      Vue.set(context.state.field.enemy, 'intent', intent);
     },
     async end_player_turn(context) {
       // Discard hand

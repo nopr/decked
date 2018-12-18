@@ -1,0 +1,8 @@
+@mixin text($type) {
+  @if $type == 'label' {
+    font-size: 8px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    line-height: 8px;
+  }
+}

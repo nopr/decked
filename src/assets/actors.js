@@ -45,8 +45,14 @@ class Enemy extends Actor {
     };
     this.effects = properties.effects || {};
     this.title = properties.title;
+    this.intents = properties.intents;
     this.sequence = properties.sequence;
-    this.intent = null;
+    this.intent = {
+      phase: 0,
+      state: 'none',
+      name: null,
+      hint: null,
+    };
   }
 }
 
