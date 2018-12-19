@@ -1,57 +1,64 @@
 <template>
-  <div class="Battle" v-bind:data-state="battle.state">
-    <div class="BattleIntro">
-      <p>{{ battle.encounter }}</p>
+  <transition-group class="BattleScreen" v-bind:data-animation="animation" name="animation" tag="div" mode="out-in" appear>
+    <div class="screen Loading" v-if="state === 0" key="loading">
+      <p class="text">{{ encounter }}</p>
     </div>
-    <div class="DragEnemy" v-for="(enemy, key) in battle.enemies" v-bind:key="key">
-      <div>{{enemy.name}}</div>
-      <Container class="DragEnemyContainer" group-name="1" v-on:drop="drop_enemy">
-        <Draggable class="area"></Draggable>
-      </Container>
+    <div class="screen Battle" v-if="state === 1" key="battle">
+      <div class="Battle_Enemies">
+        <Enemy v-for="(enemy, key) in enemies" v-bind:key="key" v-bind:enemy="enemy" />
+      </div>
+      <div class="Battle_Player">
+        <PlayerArea />
+        <Player />
+      </div>
     </div>
-    <Container group-name="1" class="BattleArea" v-on:drop="drop_stack">
-      <Draggable v-for="card in player.cards" v-bind:key="card.id" >
-        <div class="draggable-item">{{ card.name }}</div>
-      </Draggable>
-    </Container>
-    <div class="BattleEnemies">
-      <EnemyArea v-for="(enemy, key) in battle.enemies" v-bind:key="key" v-bind:index="key" v-bind:enemy="enemy" />
+    <div class="screen GameOver" v-if="state === 2" key="gameover">
+      <p>Game Over</p>
     </div>
-    <div class="BattlePlayer">
-      <PlayerArea />
-      <Player />
+    <div class="screen Reward" v-if="state === 3" key="reward">
+      <p>You win!</p>
     </div>
-  </div>
+  </transition-group>
 </template>
 
 <script>
   import EventBus from '@/eventbus';
 
-  import { Container, Draggable } from 'vue-smooth-dnd';
-
-  import EnemyArea from '@/components/EnemyArea.vue';
+  import Enemy from '@/components/Enemy.vue';
   import PlayerArea from '@/components/PlayerArea.vue';
   import Player from '@/components/Player.vue';
 
   export default {
     name: 'Battle',
+    data() {
+      return {
+        state: null,
+        animation: null
+      }
+    },
     computed: {
-      battle() {
-        return this.$store.state.battle;
+      status() {
+        return this.$store.state.battle.status;
       },
-      player() {
-        return this.$store.state.player;
+      enemies() {
+        return this.$store.state.battle.enemies;
+      },
+      encounter() {
+        return this.$store.state.battle.encounter;
       },
     },
+    watch: {
+      status(newer, older) {
+        if (newer === 'loading') { this.go(0, 'down') }
+        if (newer === 'ready') { this.go(1, 'down') }
+        if (newer === 'lose') { this.go(2, 'up') }
+        if (newer === 'win') { this.go(3, 'up') }
+      }
+    },
     methods: {
-      drop_stack(a) {
-        console.log('dropped stack');
-      },
-      drop_enemy(a) {
-        console.log('dropped enemy');
-      },
-      drop_anywhere(a) {
-        console.log('dropped anywhere');
+      go(state, animation) {
+        this.animation = animation;
+        this.state = state;
       },
       async mount() {
         await this.battle_setup();
@@ -70,7 +77,7 @@
           setTimeout(() => {
             this.$store.dispatch('Battle_Ready');
             resolve();
-          }, 2000);
+          }, 3000);
         });
       },
       battle_start() {
@@ -78,12 +85,12 @@
           setTimeout(() => {
             this.$store.dispatch('Battle_Start');
             resolve();
-          }, 2000);
+          }, 3000);
         });
       },
     },
     components: {
-      EnemyArea, PlayerArea, Player, Container, Draggable
+      Enemy, PlayerArea, Player
     },
     created() {
       console.log('Battle.created')
@@ -102,67 +109,61 @@
 </script>
 
 <style lang="scss">
-  .Battle {
+  .BattleScreen {
+    height: 100%;
+    display: flex;
 
-    justify-content: space-between;
-
-    .BattleIntro {
-      position: absolute;
-      transform: translateX(-50%) translateY(-50%);
-      transition: opacity 1s;
-      opacity: 0;
-      left: 50%;
-      top: 50%;
-    }
-
-    .BattleEnemies {
-      margin: 15px 10px;
-      display: flex;
-      flex-flow: row;
-      justify-content: space-around;
-    }
-
-    .EnemyArea {
-      transition: all .25s;
-    }
-    .PlayerArea {
-      transition: all 0.25s;
-    }
-    .Player {
-      transition: all 0.25s;
-    }
-
-    &[data-state="loading"] {
-      .BattleIntro { opacity: 1; }
-      .EnemyArea { opacity: 0; transform: translateY(-100px); }
-      .PlayerArea { opacity: 0; transform: translateX(-100px); }
-      .Player { opacity: 0; transform: translateY(100px); }
-    }
-    &[data-state="ready"] {
-      .BattleIntro { opacity: 0; }
-      .EnemyArea { opacity: 1; transform: translateY(0px); }
-      .EnemyArea:nth-child(1) { transition-delay: 0.5s; }
-      .EnemyArea:nth-child(2) { transition-delay: 0.7s; }
-      .EnemyArea:nth-child(3) { transition-delay: 0.9s; }
-      .PlayerArea { opacity: 1; transform: translateX(0); }
-      .Player { opacity: 1; transform: translateY(0); }
-    }
-
-  }
-
-  .DragEnemy {
-    border: 1px solid black;
-    padding: 10px;
-    position: relative;
-    .DragEnemyContainer {
-      position: absolute;
+    .screen {
       width: 100%;
       height: 100%;
-      top: 0;
-      left: 0;
-      & > * {
-        opacity: 0;
+      display: flex;
+      flex-flow: column;
+      box-sizing: border-box;
+    }
+
+    .Loading {
+      padding: 15px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .Battle {
+      padding: 15px;
+      height: 100%;
+      align-items: center;
+      justify-content: space-between;
+      .Battle_Enemies {
+        width: 100%;
+        display: flex;
+        flex-flow: row;
+        justify-content: center;
+      }
+      .Battle_Player {
+        width: 100%;
+        display: flex;
+        flex-flow: column;
       }
     }
+
+    .animation-enter-active {
+      transition: opacity 0.5s, transform 0.5s;
+      transition-delay: 0.5s;
+    }
+    .animation-leave-active {
+      transition: opacity 0.5s, transform 0.5s;
+    }
+    .animation-enter, .animation-leave-to {
+      position: absolute;
+      opacity: 0;
+    }
+    &[data-animation="down"] {
+      & > .animation-enter { transform: translateY(100px); }
+      & > .animation-leave-to { transform: translateY(-100px); }
+    }
+    &[data-animation="up"] {
+      & > .animation-enter { transform: translateY(-100px); }
+      & > .animation-leave-to { transform: translateY(100px); }
+    }
+
   }
 </style>

@@ -16,8 +16,7 @@
     </div>
     <div class="health">
       <icon class="health-icon" name="heart" />
-      <span class="health-current">{{ player.health.current }}</span>
-      <span class="health-maximum">{{ player.health.maximum }}</span>
+      <span class="health-value">{{ player.health.current }}/{{ player.health.maximum }}</span>
     </div>
   </div>
 </template>
@@ -55,7 +54,6 @@
     border-radius: 4px;
     position: relative;
     padding: 0;
-    margin: 15px;
 
     display: flex;
     align-items: center;
@@ -128,13 +126,7 @@
       .health-icon {
         margin-right: 5px;
       }
-      .health-current {
-        font-weight: 600;
-      }
-      .health-current:after {
-        content: '/';
-      }
-      .health-maximum {
+      .health-value {
         font-weight: 600;
       }
     }

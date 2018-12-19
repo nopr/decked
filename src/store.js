@@ -47,7 +47,7 @@ export default new Vuex.Store({
     },
     battle: {
       turn: 0,
-      ready: false,
+      status: null,
       energy: 0,
       encounter: null,
       enemies: [],
@@ -55,6 +55,31 @@ export default new Vuex.Store({
     player: null,
   },
   mutations: {
+    //
+    player_take_damage(state, data) {
+      const modified = state.player.health.current - data.value;
+      Vue.set(state.player.health, 'current', modified);
+    },
+    player_gain_effect(state, data) {
+      if (!state.player.effects[data.name]) {
+        Vue.set(state.player.effects, data.name, Effects[data.name]);
+      }
+      const gaining = state.player.effects[data.name].value + data.value;
+      Vue.set(state.player.effects[data.name], 'value', gaining);
+    },
+    enemy_take_damage(state, data) {
+      let modified = state.battle.enemies[data.target].health.current - data.value;
+      if (modified < 0) { modified = 0; }
+      Vue.set(state.battle.enemies[data.target].health, 'current', modified);
+    },
+    enemy_gain_effect(state, enemy, effect) {
+      if (!state.battle.enemies[enemy].effects[effect.name]) {
+        Vue.set(state.battle.enemies[enemy].effects, effect.name, Effects[effect.name]);
+      }
+      const gaining = state.battle.enemies[enemy].effects[effect.name].value + effect.value;
+      Vue.set(state.battle.enemies[enemy].effects[effect.name], 'value', gaining);
+    },
+    //
     add_card(state, card) {
       if (state.player.cards) {
         state.player.cards.push(card);
@@ -125,29 +150,6 @@ export default new Vuex.Store({
     check_for_effects(state) {
       return true;
     },
-    player_take_damage(state, amount) {
-      // Do stuff
-      const modified = state.player.health.current - amount;
-      Vue.set(state.player.health, 'current', modified);
-    },
-    player_gain_effect(state, effect) {
-      if (!state.player.effects[effect.name]) {
-        Vue.set(state.player.effects, effect.name, Effects[effect.name]);
-      }
-      const gaining = state.player.effects[effect.name].value + effect.value;
-      Vue.set(state.player.effects[effect.name], 'value', gaining);
-    },
-    enemy_take_damage(state, amount) {
-      const modified = state.field.enemy.health.current - amount;
-      Vue.set(state.field.enemy.health, 'current', modified);
-    },
-    enemy_gain_effect(state, effect) {
-      if (!state.field.enemy.effects[effect.name]) {
-        Vue.set(state.field.enemy.effects, effect.name, Effects[effect.name]);
-      }
-      const gaining = state.field.enemy.effects[effect.name].value + effect.value;
-      Vue.set(state.field.enemy.effects[effect.name], 'value', gaining);
-    },
   },
   actions: {
 
@@ -180,17 +182,18 @@ export default new Vuex.Store({
       Vue.set(context.state.battle, 'turn', 0);
       Vue.set(context.state.battle, 'enemies', []);
       Vue.set(context.state.battle, 'encounter', null);
-      Vue.set(context.state.battle, 'state', 'loading');
+      Vue.set(context.state.battle, 'status', 'loading');
 
-      Vue.utility.each(encounter.enemies, (enemy) => {
-        const encountered = new Actors.Enemy(enemy);
+      Vue.utility.each(encounter.enemies, (enemy, index) => {
+        const single = Object.assign({ id: index }, enemy);
+        const encountered = new Actors.Enemy(single);
         context.state.battle.enemies.push(encountered);
       });
       Vue.set(context.state.battle, 'encounter', encounter.description);
     },
 
     Battle_Ready(context) {
-      Vue.set(context.state.battle, 'state', 'ready');
+      Vue.set(context.state.battle, 'status', 'ready');
     },
 
     Battle_Start(context) {
@@ -208,13 +211,31 @@ export default new Vuex.Store({
       });
 
       Vue.set(context.state.battle, 'turn', 1);
-      Vue.set(context.state.battle, 'state', 'start');
+      Vue.set(context.state.battle, 'status', 'ready');
     },
 
-    Battle_Play_Card(context, data) {
-      console.log('Battle_play_card', data);
+    Battle_Check(context) {
+      let win = true;
+      let lose = true;
+      // Cannot win if there are enemies remaining
+      Vue.utility.each(context.state.battle.enemies, (enemy) => {
+        if (enemy.health.current > 0) { win = false; }
+      });
+      // Cannot lose if there is player health remaining
+      if (context.state.player.health.current > 0) { lose = false; }
+      // Set the battle status accordingly
+      if (win) {
+        Vue.set(context.state.battle, 'status', 'win');
+      } else if (lose) {
+        Vue.set(context.state.battle, 'status', 'lose');
+      }
+    },
 
-      
+    async Card_Play(context, card) {
+      console.log('Card_Play', card);
+
+      await card.action.call(context, card);
+      await this.dispatch('Battle_Check');
     },
 
     create_player(context) {

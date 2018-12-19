@@ -1,31 +1,29 @@
 <template>
-  <div class="Game">
-    <transition-group class="GameScreens" name="animate" tag="div">
-      <div class="GameScreen" v-if="gamestate === 'intro'" v-bind:key="'intro'">
-        <Player />
-        <p>I'm the intro screen</p>
-        <Inventory />
-        <p><button v-on:click="enter_new_area">Enter the dungeon</button></p>
-      </div>
-      <div class="GameScreen" v-if="gamestate === 'area'" v-bind:key="'area'">
-        <Player />
-        <Map />
-      </div>
-      <BattleScreen class="GameScreen" v-if="gamestate === 'battle'" v-bind:key="'battle'" />
-      <div class="GameScreen" v-if="gamestate === 'event'" v-bind:key="'event'">
-        <Player />
-        <div>Event!</div>
-      </div>
-      <div class="GameScreen" v-if="gamestate === 'shop'" v-bind:key="'shop'">
-        <Player />
-        <div>Shop!</div>
-      </div>
-      <div class="GameScreen" v-if="gamestate === 'camp'" v-bind:key="'camp'">
-        <Player />
-        <div>Camp!</div>
-      </div>
-    </transition-group>
-  </div>
+  <transition-group class="Game" v-bind:data-animation="animation" name="animation" tag="div" mode="out-in" appear>
+    <div class="GameScreen" v-if="state === 'intro'" key="intro">
+      <Player />
+      <p>I'm the intro screen</p>
+      <Inventory />
+      <p><button v-on:click="enter_new_area">Enter the dungeon</button></p>
+    </div>
+    <div class="GameScreen" v-if="state === 'area'" key="area">
+      <Player />
+      <Map />
+    </div>
+    <BattleScreen class="GameScreen" v-if="state === 'battle'" key="battle" />
+    <div class="GameScreen" v-if="state === 'event'" key="event">
+      <Player />
+      <div>Event!</div>
+    </div>
+    <div class="GameScreen" v-if="state === 'shop'" key="shop">
+      <Player />
+      <div>Shop!</div>
+    </div>
+    <div class="GameScreen" v-if="state === 'camp'" key="camp">
+      <Player />
+      <div>Camp!</div>
+    </div>
+  </transition-group>
 </template>
 
 <script>
@@ -40,7 +38,8 @@
     name: 'Game',
     data() {
       return {
-        state: 'area'
+        state: 'area',
+        animation: 'down'
       }
     },
     computed: {
@@ -49,6 +48,17 @@
       },
       gamestate() {
         return this.$store.state.gamestate
+      }
+    },
+    watch: {
+      gamestate(newer, older) {
+        if (newer === 'intro') { this.animation = 'down' }
+        if (newer === 'area') { this.animation = 'down' }
+        if (newer === 'event') { this.animation = 'down' }
+        if (newer === 'battle') { this.animation = 'up' }
+        if (newer === 'shop') { this.animation = 'down' }
+        if (newer === 'camp') { this.animation = 'down' }
+        this.state = newer;
       }
     },
     components: {
@@ -88,12 +98,33 @@
 
     height: 100%;
 
-    .GameScreens { height: 100%; }
     .GameScreen {
       height: 100%;
+      width: 100%;
       display: flex;
       flex-flow: column;
       overflow: hidden;
+    }
+
+    .animation-enter-active {
+      transition: opacity 0.5s, transform 0.5s;
+      transition-delay: 0.5s;
+    }
+    .animation-leave-active {
+      transition: opacity 0.5s, transform 0.5s;
+    }
+    .animation-enter, .animation-leave-to {
+      position: absolute;
+      opacity: 0;
+    }
+
+    &[data-animation="down"] {
+      & > .animation-enter { transform: translateY(300px); }
+      & > .animation-leave-to { transform: translateY(-300px); }
+    }
+    &[data-animation="up"] {
+      & > .animation-enter { transform: translateY(-300px); }
+      & > .animation-leave-to { transform: translateY(300px); }
     }
 
   }

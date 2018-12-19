@@ -38,6 +38,7 @@ class Player extends Actor {
 class Enemy extends Actor {
   constructor(properties) {
     super(properties);
+    this.id = properties.id;
     this.name = properties.name;
     this.health = {
       current: properties.health.current,

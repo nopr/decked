@@ -6,10 +6,9 @@
         <Card v-for="card in deck.cards" v-bind:key="'deck'+card.id" v-bind:data-key="card.id" v-bind:card="card" small="true" />
       </transition-group>
     </div>
-    </Container>
     <div class="hand">
       <transition-group class="list" name="hand-card" tag="div" v-bind:duration="250">
-        <Card v-for="(card, index) in hand.cards" v-bind:key="card.id" v-bind:data-playing="playing === index" v-bind:data-key="card.id" v-bind:card="card" />
+        <Card v-for="(card, index) in hand.cards" v-on:click.native="stage(card, index)" v-bind:key="card.id" v-bind:data-staged="staged === index" v-bind:data-key="card.id" v-bind:card="card" />
       </transition-group>
     </div>
     <div class="pile" v-bind:data-state="pile.state">
@@ -27,15 +26,13 @@
   import EventBus from '@/eventbus';
   import Card from './Card.vue';
 
-  import { Container, Draggable } from 'vue-smooth-dnd';
-
   export default {
     name: 'PlayerArea',
-    components: { Container, Draggable, Card },
+    components: { Card },
     data() {
       return {
         energy: 0,
-        playing: null,
+        staged: null,
         deck: {
           state: null,
           cards: [],
@@ -59,9 +56,6 @@
       }
     },
     methods: {
-      drop_back() {
-        console.log('drop back')
-      },
       async fill(cards) {
         for (let card in cards) {
           await this.gain(cards[card]);
@@ -151,37 +145,53 @@
           }, 100);
         });
       },
-      async attempt(card, index) {
+      async stage(card, index) {
         console.log('playing', card, index)
-        if (this.playing !== null) { return }
         // if (this.energy === 0) {
         //   return await this.no_energy();
         // }
         // if (this.energy < card.cost) { return }
         // this.energise(this.energy - 1);
 
-        this.playing = index;
+        console.log('staged = ', this.staged);
+        if (this.staged !== null) { return; }
 
-        if (card.type === 'skill') {
-          EventBus.$emit('Card:Play', {
-            card: card,
-            index: index,
-            target: {
-              type: 'player'
-            }
-          });
+        console.log('continue then?')
+
+        this.staged = index;
+
+        if (card.target === 'single') {
+          console.log('need single target')
+          EventBus.$emit('Card:Stage', card);
+          return;
         }
-        if (card.type === 'attack') {
-          EventBus.$emit('Card:ChooseTarget', {
-            card: card,
-            index: index 
-          });
+        if (card.target === 'all') {
+          console.log('play all targets')
+          EventBus.$emit('Card:Stage', card);
+          await this.hold();
+          await this.$store.dispatch('Card_Play', card);
+          EventBus.$emit('Card:Done', card);
         }
-        // this.discard(card, index);
+        if (card.target === 'self') {
+          console.log('play self')
+          EventBus.$emit('Card:Stage', card);
+          await this.hold();
+          await this.$store.dispatch('Card_Play', card);
+          EventBus.$emit('Card:Done', card);
+        }
+        
       },
-      play(card, index) {
-        this.playing = null;
-        this.discard(card, index);
+      hold(card) {
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            resolve();
+          }, 250)
+        })
+      },
+      play_done(card) {
+        console.log('done playing card', card)
+        this.discard(card, this.staged);
+        this.staged = null;
       },
       async end() {
         let n = this.hand.cards.length;
@@ -199,15 +209,10 @@
     },
     mounted() {
       console.log('PlayerArea.mounted')
-      // EventBus.$on('Battle_Started', () => {
+      EventBus.$on('Battle_Started', () => {
         this.fill(this.player.cards);
-      // });
-      EventBus.$on('Card:Play', (data) => {
-        console.log("card play", data)
-        this.$store.dispatch('Battle_Play_Card', data).then(() => {
-          this.play(data.card, data.index);
-        });
       });
+      EventBus.$on('Card:Done', this.play_done);
     },
     updated() {
       console.log('PlayerArea.updated')
@@ -240,7 +245,8 @@
     box-sizing: border-box;
     background: #eee;
     height: 160px;
-    margin: 15px;
+
+    margin-bottom: 15px;
 
     .deck, .pile {
       width: 50px;
@@ -356,8 +362,8 @@
         transition: all 0.25s ease, top 0.25s;
         margin: 0 3px;
       }
-      .Card.sortable-ghost {
-        opacity: 0;
+      .Card[data-staged] {
+        transform: translateY(-80px);
       }
       .hand-card-enter {
         opacity: 0;

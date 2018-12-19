@@ -7,15 +7,19 @@ const EnemyBigRat = {
   },
   intents: {
     attack: {
-      hint: 'Bite for 5 Damage',
-      async action(objects) {
-        await objects.player.takeDamage(5);
+      hint: '5 Damage',
+      action() {
+        this.commit('player_take_damage', { value: 5 });
       },
     },
     buff: {
       hint: 'Buffing',
-      action() {
-        console.log('rat buffs itself');
+      action(self) {
+        this.commit('enemy_gain_effect', {
+          target: self,
+          name: 'strength',
+          value: 1,
+        });
       },
     },
   },
@@ -34,13 +38,13 @@ const EnemyRat = {
   },
   intents: {
     attack: {
-      hint: 'Scratch for 2 Damage',
+      hint: '2 Damage',
       action() {
-        console.log('rat does 2 damage');
+        this.commit('player_take_damage', { value: 2 });
       },
     },
     wait: {
-      hint: 'Waiting',
+      hint: '...',
       action() {
         console.log('rat does nothing');
       },
@@ -52,7 +56,7 @@ const EnemyRat = {
 };
 
 const EncounterBigRat = {
-  description: 'You encounter one large, angry rat!',
+  description: 'You encounter a large, angry rat.',
   modifiers: [],
   enemies: [
     EnemyBigRat,

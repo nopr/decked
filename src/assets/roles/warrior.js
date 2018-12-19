@@ -1,15 +1,15 @@
 export default {
-  name: 'Adventurer',
-  description: 'You\'re ready to adventure!',
+  name: 'Fighter',
+  description: 'You fight stuff.',
   health: {
-    default: 10,
+    default: 20,
     increments: 5,
   },
   gold: 50,
   deck: [
-    'strike',
-    'strike',
-    'strike',
+    'attack',
+    'tackle',
+    'swing',
     'defend',
     'defend',
     'defend',
@@ -49,13 +49,38 @@ export default {
     },
   ],
   cards: {
-    strike: {
-      name: 'Strike',
+    attack: {
+      name: 'Attack',
       type: 'attack',
       cost: 1,
       text: 'Deal <b>10</b> damage.',
-      action() {
-        this.commit('enemy_take_damage', 10);
+      target: 'single',
+      action(card) {
+        this.commit('enemy_take_damage', { target: card.target_id, value: 10 });
+      },
+    },
+    tackle: {
+      name: 'Tackle',
+      type: 'attack',
+      cost: 1,
+      text: 'Deal <b>15</b> damage.<br />Suffer <b>5</b> damage.',
+      target: 'single',
+      action(card) {
+        this.commit('enemy_take_damage', { target: card.target_id, value: 15 });
+        this.commit('player_take_damage', { value: 5 });
+      },
+    },
+    swing: {
+      name: 'Swing',
+      type: 'attack',
+      cost: 2,
+      text: 'Deal <b>5</b> damage to all enemies.',
+      target: 'all',
+      action(card) {
+        const enemies = this.state.battle.enemies.length;
+        for (let enemy = 0; enemy < enemies; enemy += 1) {
+          this.commit('enemy_take_damage', { target: enemy, value: 5 });
+        }
       },
     },
     defend: {
@@ -63,6 +88,7 @@ export default {
       type: 'skill',
       cost: 1,
       text: 'Gain <b>8</b> block.',
+      target: 'self',
       action() {
         this.commit('player_gain_effect', {
           name: 'block',
