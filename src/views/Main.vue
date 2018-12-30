@@ -1,11 +1,11 @@
 <template>
   <div class="Main">
     <div class="logo">
-      Decked
+      Game
     </div>
-    <div class="menu">
-      <router-link to="/create" class="item">Start</router-link>
-      <router-link to="/options" class="item">Options</router-link>
+    <div class="button-group">
+      <router-link to="/create" class="button">Start</router-link>
+      <router-link to="/options" class="button">Options</router-link>
     </div>
     <div class="about">Made by me</div>
   </div>
@@ -42,23 +42,6 @@
     flex-flow: column;
     align-items: center;
     justify-content: space-between;
-
-    .menu {
-      border-style: solid;
-      border-color: #eee;
-      border-width: 1px;
-      border-radius: 10px;
-    }
-    .menu .item {
-      display: block;
-      background: #eee;
-      padding: 10px 30px;
-      margin: 5px;
-      border-radius: 5px;
-      text-align: center;
-      color: #222;
-      text-decoration: none;
-    }
 
     .logo {
       margin-top: 30px;

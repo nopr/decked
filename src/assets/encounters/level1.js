@@ -1,79 +1,55 @@
-const EnemyBigRat = {
-  name: 'Big Rat',
-  title: null,
+const Guard = {
+  name: 'Guard',
+  title: 'Guard',
+  description: 'You encounter a weak enforcer.',
+  attributes: [
+    {
+      name: 'Inexperienced',
+      description: 'You are scrawny.',
+      effects: [
+        // { name: 'player_add_card', value: 'strike' },
+        // { name: 'player_remove_card', value: 'defend' },
+      ],
+    },
+  ],
   health: {
-    current: 15,
-    maximum: 15,
+    current: 25,
+    maximum: 25,
   },
+  gold: 25,
   intents: {
-    attack: {
+    attack_once: {
+      name: 'Whack',
       hint: '5 Damage',
-      action() {
-        this.commit('player_take_damage', { value: 5 });
+      async action() {
+        await this.dispatch('player_take_damage', { value: 5 });
+      },
+    },
+    attack_twice: {
+      name: 'Wild Swing',
+      hint: '3 Damage x2',
+      async action() {
+        await this.dispatch('player_take_damage', { value: 3 });
+        await this.dispatch('player_take_damage', { value: 3 });
       },
     },
     buff: {
-      hint: 'Buffing',
-      action(self) {
-        this.commit('enemy_gain_effect', {
-          target: self,
+      name: 'Rage',
+      hint: 'Increases strength',
+      async action() {
+        await this.dispatch('enemy_gain_effect', {
           name: 'strength',
-          value: 1,
+          value: 2,
         });
       },
     },
   },
   sequence: [
-    ['attack'],
-    ['attack', 'buff'],
-  ],
-};
-
-const EnemyRat = {
-  name: 'Rat',
-  title: null,
-  health: {
-    current: 6,
-    maximum: 6,
-  },
-  intents: {
-    attack: {
-      hint: '2 Damage',
-      action() {
-        this.commit('player_take_damage', { value: 2 });
-      },
-    },
-    wait: {
-      hint: '...',
-      action() {
-        console.log('rat does nothing');
-      },
-    },
-  },
-  sequence: [
-    ['attack', 'wait'],
-  ],
-};
-
-const EncounterBigRat = {
-  description: 'You encounter a large, angry rat.',
-  modifiers: [],
-  enemies: [
-    EnemyBigRat,
-  ],
-};
-
-const EncounterSmallRatPack = {
-  description: 'You run into a small pack of rats.',
-  modifiers: [],
-  enemies: [
-    EnemyRat,
-    EnemyRat,
-    EnemyRat,
+    ['attack_once', 'attack_twice'],
+    ['buff'],
   ],
 };
 
 export default [
-  EncounterBigRat,
-  EncounterSmallRatPack,
+  Guard
 ];

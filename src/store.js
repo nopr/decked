@@ -2,11 +2,18 @@ import Vue from 'vue';
 import Vuex from 'vuex';
 import VueLodash from 'vue-lodash';
 
+import EventBus from '@/eventbus';
+
 import Actors from './assets/actors';
 import Effects from './assets/effects';
 import {
   names,
   genders,
+  bodytypes,
+  bodycolours,
+  belttypes,
+  beltcolours,
+  legcolours,
   skincolours,
   haircolours,
   hairstyles,
@@ -15,16 +22,14 @@ import {
 
 import EncountersLevel1 from '@/assets/encounters/level1';
 
-import warrior from '@/assets/roles/warrior';
+import Soldier from '@/assets/players/soldier';
 
 import GenerateArea from '@/store/area';
 
 const encounters = {
   1: EncountersLevel1,
 };
-
-const classes = [];
-classes.push(warrior);
+const players = [Soldier];
 
 Vue.use(Vuex);
 Vue.use(VueLodash, { name: 'utility' });
@@ -50,35 +55,21 @@ export default new Vuex.Store({
       status: null,
       energy: 0,
       encounter: null,
-      enemies: [],
+      enemy: null,
+      rewards: [],
     },
     player: null,
+    effects: Effects,
   },
   mutations: {
     //
-    player_take_damage(state, data) {
-      const modified = state.player.health.current - data.value;
-      Vue.set(state.player.health, 'current', modified);
+    player_animation_add(state, data) {
+      EventBus.$emit('player_animation_add', data);
     },
-    player_gain_effect(state, data) {
-      if (!state.player.effects[data.name]) {
-        Vue.set(state.player.effects, data.name, Effects[data.name]);
-      }
-      const gaining = state.player.effects[data.name].value + data.value;
-      Vue.set(state.player.effects[data.name], 'value', gaining);
+    enemy_animation_add(state, data) {
+      EventBus.$emit('enemy_animation_add', data);
     },
-    enemy_take_damage(state, data) {
-      let modified = state.battle.enemies[data.target].health.current - data.value;
-      if (modified < 0) { modified = 0; }
-      Vue.set(state.battle.enemies[data.target].health, 'current', modified);
-    },
-    enemy_gain_effect(state, enemy, effect) {
-      if (!state.battle.enemies[enemy].effects[effect.name]) {
-        Vue.set(state.battle.enemies[enemy].effects, effect.name, Effects[effect.name]);
-      }
-      const gaining = state.battle.enemies[enemy].effects[effect.name].value + effect.value;
-      Vue.set(state.battle.enemies[enemy].effects[effect.name], 'value', gaining);
-    },
+    
     //
     add_card(state, card) {
       if (state.player.cards) {
@@ -174,84 +165,122 @@ export default new Vuex.Store({
       const point = context.state.area.steps[data.step][data.point];
 
       Vue.set(context.state, 'gamestate', point.type);
+      
+      context.state.area.history.push(data.point);
+      Vue.set(context.state.area, 'active_step', data.step);
+      Vue.set(context.state.area, 'active_point', data.point);
     },
 
     Battle_Setup(context) {
       const encounter = Vue.utility.sample(encounters[context.state.level]);
 
       Vue.set(context.state.battle, 'turn', 0);
-      Vue.set(context.state.battle, 'enemies', []);
+      Vue.set(context.state.battle, 'enemy', null);
       Vue.set(context.state.battle, 'encounter', null);
       Vue.set(context.state.battle, 'status', 'loading');
 
-      Vue.utility.each(encounter.enemies, (enemy, index) => {
-        const single = Object.assign({ id: index }, enemy);
-        const encountered = new Actors.Enemy(single);
-        context.state.battle.enemies.push(encountered);
-      });
-      Vue.set(context.state.battle, 'encounter', encounter.description);
+      const gender = Vue.utility.sample(genders);
+      const name = Vue.utility.sample(names[gender]);
+      
+      let single = Object.assign({
+        id: 0,
+        gender,
+        appearance: {
+          bodytype: Vue.utility.sample(bodytypes),
+          bodycolour: Vue.utility.sample(bodycolours),
+          belttype: Vue.utility.sample(belttypes),
+          beltcolour: Vue.utility.sample(beltcolours),
+          legcolour: Vue.utility.sample(legcolours),
+          skincolour: Vue.utility.sample(skincolours),
+          haircolour: Vue.utility.sample(haircolours),
+          hairstyle: Vue.utility.sample(hairstyles[gender]),
+          extra: Vue.utility.sample(extras[gender]),
+        }
+      }, encounter);
+      single.name = Vue.utility.sample(names[gender]);
+      const enemy = new Actors.Enemy(single);
+      Vue.set(context.state.battle, 'enemy', enemy);
+      // Vue.utility.each(encounter.enemies, (enemy, index) => {
+      //   const single = Object.assign({ id: index }, enemy);
+      //   const encountered = new Actors.Enemy(single);
+      //   context.state.battle.enemy.push(encountered);
+      // });
+      Vue.set(context.state.battle, 'encounter', single.description);
     },
 
     Battle_Ready(context) {
       Vue.set(context.state.battle, 'status', 'ready');
     },
-
-    Battle_Start(context) {
-      // Set the correct amount of energy
-      Vue.set(context.state.battle, 'energy', context.state.player.energy);
-
-      // For each enemy in the battle
-      Vue.utility.each(context.state.battle.enemies, (enemy) => {
-        const name = Vue.utility.sample(enemy.sequence[0]);
-        const intent = enemy.intents[name];
-        Vue.set(enemy.intent, 'phase', 0);
-        Vue.set(enemy.intent, 'state', 'ready');
-        Vue.set(enemy.intent, 'name', name);
-        Vue.set(enemy.intent, 'hint', intent.hint);
+    
+    Battle_Action_Player(context, card) {
+      return new Promise(async (resolve) => {
+        await card.action.call(context, card);
+        await this.dispatch('Battle_Check');
+        resolve();
       });
-
-      Vue.set(context.state.battle, 'turn', 1);
-      Vue.set(context.state.battle, 'status', 'ready');
+    },
+    
+    Battle_Action_Enemy(context) {
+      const enemy = context.state.battle.enemy;
+      const intent = Vue.utility.sample(enemy.sequence[enemy.phase]);
+      const perform = enemy.intents[intent];
+      Vue.set(enemy, 'phase', enemy.phase + 1);
+      if (enemy.phase === enemy.sequence.length) {
+        Vue.set(enemy, 'phase', 0);
+      }
+      return new Promise(async (resolve) => {
+        await perform.action.call(context);
+        await this.dispatch('Battle_Check');
+        resolve();
+      });
     },
 
     Battle_Check(context) {
       let win = true;
       let lose = true;
       // Cannot win if there are enemies remaining
-      Vue.utility.each(context.state.battle.enemies, (enemy) => {
-        if (enemy.health.current > 0) { win = false; }
-      });
+      if (context.state.battle.enemy.health.current > 0) { win = false; }
       // Cannot lose if there is player health remaining
       if (context.state.player.health.current > 0) { lose = false; }
       // Set the battle status accordingly
-      if (win) {
-        Vue.set(context.state.battle, 'status', 'win');
-      } else if (lose) {
-        Vue.set(context.state.battle, 'status', 'lose');
-      }
+      if (win) { context.dispatch('Battle_Win'); }
+      if (lose) { context.dispatch('Battle_Lose'); }
+      if (win && lose) { context.dispatch('Battle_Lose'); }
+    },
+    
+    Battle_Win(context) {
+      Vue.set(context.state.battle, 'status', 'win');
+      
+    },
+    
+    Battle_Lose(context) {
+      Vue.set(context.state.battle, 'status', 'lose');
+      
     },
 
     async Card_Play(context, card) {
-      console.log('Card_Play', card);
-
       await card.action.call(context, card);
       await this.dispatch('Battle_Check');
     },
 
     create_player(context) {
-      const role = Vue.utility.sample(classes);
+      const role = Vue.utility.sample(players);
       const gender = Vue.utility.sample(genders);
       const name = Vue.utility.sample(names[gender]);
       const deck = Vue.utility.each(role.deck, card => card);
       const attributes = Vue.utility.sampleSize(role.attributes, 2);
 
-      context.commit('set_role', role);
-
       const Player = new Actors.Player({
         name,
         role,
         gender,
+        title: role.name,
         appearance: {
+          bodytype: Vue.utility.sample(bodytypes),
+          bodycolour: Vue.utility.sample(bodycolours),
+          belttype: Vue.utility.sample(belttypes),
+          beltcolour: Vue.utility.sample(beltcolours),
+          legcolour: Vue.utility.sample(legcolours),
           skincolour: Vue.utility.sample(skincolours),
           haircolour: Vue.utility.sample(haircolours),
           hairstyle: Vue.utility.sample(hairstyles[gender]),
@@ -261,6 +290,8 @@ export default new Vuex.Store({
           current: role.health.default,
           maximum: role.health.default,
         },
+        block: 0,
+        gold: role.gold,
         attributes,
         energy: 3,
         cards: [],
@@ -269,7 +300,9 @@ export default new Vuex.Store({
       Vue.set(context.state, 'player', Player);
 
       Vue.utility.each(deck, (card) => {
-        const source = Object.assign({}, context.state.role.cards[card]);
+        const rarity = card.split(':')[0];
+        const name = card.split(':')[1];
+        const source = Object.assign({}, role.cards[rarity][name]);
         context.state.player.cards.push(source);
       });
 
@@ -277,6 +310,171 @@ export default new Vuex.Store({
         Vue.set(context.state.player.cards[n], 'id', n);
       }
     },
+    
+    player_take_damage(context, data) {
+      console.log('player_take_damage', data);
+      let modified = context.state.player.health.current - data.value;
+      if (modified < 0) { modified = 0; }
+      Vue.set(context.state.player.health, 'current', modified);
+      context.commit('enemy_animation_add', {
+        image: null,
+        colour: 'tomato',
+        value: '-' + data.value,
+      });
+    },
+    player_gain_health(context, data) {
+      console.log('player_gain_health', data);
+      let gaining = context.state.player.health.current + data.value;
+      if (gaining > context.state.player.health.maximum) { gaining = context.state.player.health.maximum; }
+      Vue.set(context.state.player, 'health', gaining);
+      context.commit('player_animation_add', {
+        image: null,
+        colour: 'tomato',
+        value: '+' + data.value,
+      });
+    },
+    player_lose_health(context, data) {
+      console.log('player_lose_health', data);
+      let modified = context.state.player.health.current - data.value;
+      if (modified < 0) { modified = 0; }
+      Vue.set(context.state.player.health, 'current', modified);
+      context.commit('player_animation_add', {
+        image: null,
+        colour: 'tomato',
+        value: '-' + data.value,
+      });
+    },
+    player_gain_gold(context, data) {
+      console.log('player_gain_gold', data);
+      const gaining = context.state.player.gold + data.value;
+      Vue.set(context.state.player, 'gold', gaining);
+      context.commit('player_animation_add', {
+        image: '/images/cards/receive-money.svg',
+        colour: 'gold',
+        value: '+' + data.value,
+      });
+    },
+    player_lose_gold(context, data) {
+      console.log('player_lose_gold', data);
+      let modified = context.state.player.gold - data.value;
+      if (modified < 0) { modified = 0; }
+      Vue.set(context.state.player, 'gold', modified);
+      context.commit('player_animation_add', {
+        image: '/images/cards/pay-money.svg',
+        colour: 'gold',
+        value: '+' + data.value,
+      });
+    },
+    player_gain_block(context, data) {
+      console.log('player_gain_block', data);
+      const gaining = context.state.player.block + data.value;
+      Vue.set(context.state.player, 'block', gaining);
+      context.commit('player_animation_add', {
+        image: '/images/cards/armor-upgrade.svg',
+        colour: 'paleturquoise',
+        value: '+' + data.value,
+      });
+    },
+    player_lose_block(context, data) {
+      console.log('player_lose_block', data);
+      let modified = context.state.player.block - data.value;
+      if (modified < 0) { modified = 0; }
+      Vue.set(context.state.player, 'block', modified);
+      context.commit('player_animation_add', {
+        image: '/images/cards/armor-downgrade.svg',
+        colour: 'paleturquoise',
+        value: '-' + data.value,
+      });
+    },
+    player_gain_effect(context, data) {
+      console.log('player_gain_effect', data);
+      const gaining = Object.assign({ value: effect.value }, Effects[effect.name]);
+      const existing = Vue.utility.findIndex(context.state.player.effects, { name: gaining.name });
+      if (existing !== -1) {
+        Vue.set(context.state.player.effects[existing], 'value', context.state.player.effects[existing] + effect.value);
+      }
+      if (existing === -1) {
+        context.state.player.effects.push(gaining);
+      }
+      context.commit('player_animation_add', {
+        image: context.state.effects[data.name].image,
+        colour: context.state.effects[data.name].colour,
+        value: '+' + data.value,
+      });
+    },
+    enemy_take_damage(context, data) {
+      console.log('enemy_take_damage', data);
+      let modified = context.state.battle.enemy.health.current - data.value;
+      if (modified < 0) { modified = 0; }
+      Vue.set(context.state.battle.enemy.health, 'current', modified);
+      context.commit('enemy_animation_add', {
+        image: null,
+        colour: 'tomato',
+        value: '-' + data.value,
+      });
+    },
+    enemy_gain_gold(context, data) {
+      console.log('enemy_gain_gold', data);
+      const gaining = context.state.battle.enemy.gold + data.value;
+      Vue.set(context.state.battle.enemy, 'gold', gaining);
+      context.commit('enemy_animation_add', {
+        image: '/images/cards/receive-money.svg',
+        colour: 'gold',
+        value: '+' + data.value,
+      });
+    },
+    enemy_lose_gold(context, data) {
+      console.log('enemy_lose_gold', data);
+      let modified = context.state.battle.enemy.gold - data.value;
+      if (modified < 0) { modified = 0; }
+      Vue.set(context.state.battle.enemy, 'gold', modified);
+      context.commit('enemy_animation_add', {
+        image: '/images/cards/pay-money.svg',
+        colour: 'gold',
+        value: '-' + data.value,
+      });
+    },
+    enemy_gain_block(context, data) {
+      console.log('enemy_gain_block', data);
+      const gaining = context.state.battle.enemy.block + data.value;
+      Vue.set(context.state.battle.enemy, 'block', gaining);
+      context.commit('enemy_animation_add', {
+        image: '/images/cards/armor-upgrade.svg',
+        colour: 'paleturquoise',
+        value: '+' + data.value,
+      });
+    },
+    enemy_lose_block(context, data) {
+      console.log('enemy_lose_block', data);
+      let modified = context.state.battle.enemy.block - data.value;
+      if (modified < 0) { modified = 0; }
+      Vue.set(context.state.battle.enemy, 'block', modified);
+      context.commit('enemy_animation_add', {
+        image: '/images/cards/armor-downgrade.svg',
+        colour: 'paleturquoise',
+        value: '-' + data.value,
+      });
+    },
+    enemy_gain_effect(context, effect) {
+      console.log('enemy_gain_effect', effect);
+      const gaining = Object.assign({}, Effects[effect.name]);
+      Vue.set(gaining, 'value', effect.value);
+      const existing = Vue.utility.findIndex(context.state.battle.enemy.effects, { name: gaining.name });
+      if (existing === -1) {
+        context.state.battle.enemy.effects.push(gaining);
+      }
+      if (existing !== -1) {
+        Vue.set(context.state.battle.enemy.effects[existing], 'value', context.state.battle.enemy.effects[existing].value + effect.value);
+      }
+      context.commit('enemy_animation_add', {
+        image: context.state.effects[effect.name].image,
+        colour: context.state.effects[effect.name].colour,
+        value: '+' + effect.value,
+      });
+    },
+    
+    
+    ///
     player_add_card(context, card) {
       context.commit('add_card', context.state.role.cards[card]);
     },

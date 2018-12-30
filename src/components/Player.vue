@@ -1,32 +1,21 @@
 <template>
-  <div class="Player" v-if="player">
-    <Character />
-    <div class="about">
-      <div class="name">{{ player.name }} the {{ player.role.name }}</div>
-      <div class="attributes">
-        <span class="attribute" v-for="attribute in player.attributes" v-bind:key="attribute.name">{{ attribute.name }}</span>
-      </div>
-    </div>
-    <div class="effects">
-      <span class="effect" v-for="(effect, key) in player.effects" v-bind:key="key" v-bind:style="{ color: effect.colour }">
-        <icon class="effect-icon" v-bind:name="effect.icon" />
-        <span class="effect-name">{{ effect.name }}</span>
-        <span class="effect-value">{{ effect.value }}</span>
-      </span>
-    </div>
-    <div class="health">
-      <icon class="health-icon" name="heart" />
-      <span class="health-value">{{ player.health.current }}/{{ player.health.maximum }}</span>
-    </div>
+  <div class="Player" v-if="player" v-bind:data-vertical="vertical" v-bind:data-battle="battle">
+    <Avatar v-bind:actor="player" />
+    <Actor v-bind:actor="player" />
   </div>
 </template>
 
 <script>
-  import Character from './Character.vue';
+  import Avatar from './Avatar.vue';
+  import Actor from './Actor.vue';
 
   export default {
     name: 'Player',
-    components: { Character },
+    props: {
+      vertical: false,
+      battle: false,
+    },
+    components: { Avatar, Actor },
     computed: {
       player() {
         return this.$store.state.player
@@ -49,86 +38,23 @@
 
 <style lang="scss">
   .Player {
-
-    background: #222;
-    border-radius: 4px;
-    position: relative;
-    padding: 0;
-
-    display: flex;
-    align-items: center;
-    justify-content: start;
-
-    color: #eee;
     
-    & > div {
-      padding: 15px;
-    }
-
-    .Character {
-      padding: 0;
-      width: 50px;
-      height: 50px;
-      margin-left: 10px;
-      background: #444;
-      svg {
-        width: 50px !important;
-        height: 50px !important;
-      }
-    }
-
-    .about {
-      display: flex;
+    display: flex;
+    flex-flow: row-reverse;
+    
+    &[data-vertical] {
       flex-flow: column;
-      flex-grow: 1;
-      .name {
-        font-weight: 900;
-        text-transform: uppercase;
-      }
-      .attributes {
-        opacity: 0.5;
-        font-weight: 200;
-        font-style: italic;
-      }
-      .attribute:before { content: ', '; }
-      .attribute:first-child:before { content: ''; }
-      .attribute:last-child:before { content: ' and '; }
+      .Actor { margin: 5px 0 0; position: relative; }
+      .Actor .effects { display: none; }
+      .Actor .attributes { display: none; }
+      .Actor .block { display: none; }
+      .Actor .stats { margin-top: 5px; }
     }
-
-    .effects {
-      display: flex;
-      flex-flow: row;
-      align-items: center;
-      .effect {
-        display: flex;
-        flex-flow: row;
-        align-items: center;
-      }
-      .effect + .effect {
-        padding-left: 15px;
-      }
-      .effect-icon {
-        margin-right: 5px;
-      }
-      .effect-name {
-        display: none;
-      }
-      .effect-value {
-        font-weight: 600;
-      }
-    }
-
-    .health {
-      color: red;
-      display: flex;
-      flex-flow: row;
-      align-items: center;
-      .health-icon {
-        margin-right: 5px;
-      }
-      .health-value {
-        font-weight: 600;
-      }
+    
+    &[data-battle] {
+      flex-flow: column;
+      .Avatar { background: transparent; justify-content: flex-end; }
+      .Actor { margin: 5px 0 0; position: relative; }
     }
 
   }

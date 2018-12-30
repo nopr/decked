@@ -4,12 +4,12 @@
       <p class="text">{{ encounter }}</p>
     </div>
     <div class="screen Battle" v-if="state === 1" key="battle">
-      <div class="Battle_Enemies">
-        <Enemy v-for="(enemy, key) in enemies" v-bind:key="key" v-bind:enemy="enemy" />
+      <div class="Battle_Actors">
+        <Participant v-bind:self="player" battle="true" />
+        <Participant v-bind:self="enemy" battle="true" enemy="true" />
       </div>
       <div class="Battle_Player">
-        <PlayerArea />
-        <Player />
+        <Field />
       </div>
     </div>
     <div class="screen GameOver" v-if="state === 2" key="gameover">
@@ -17,6 +17,10 @@
     </div>
     <div class="screen Reward" v-if="state === 3" key="reward">
       <p>You win!</p>
+      <div class="button-group">
+        <button class="is-light">Rewards</button>
+        <button v-on:click="battle_end">Skip</button>
+      </div>
     </div>
   </transition-group>
 </template>
@@ -24,9 +28,8 @@
 <script>
   import EventBus from '@/eventbus';
 
-  import Enemy from '@/components/Enemy.vue';
-  import PlayerArea from '@/components/PlayerArea.vue';
-  import Player from '@/components/Player.vue';
+  import Field from '@/components/Field.vue';
+  import Participant from '@/components/Participant';
 
   export default {
     name: 'Battle',
@@ -40,11 +43,14 @@
       status() {
         return this.$store.state.battle.status;
       },
-      enemies() {
-        return this.$store.state.battle.enemies;
-      },
       encounter() {
         return this.$store.state.battle.encounter;
+      },
+      enemy() {
+        return this.$store.state.battle.enemy;
+      },
+      player() {
+        return this.$store.state.player;
       },
     },
     watch: {
@@ -61,36 +67,32 @@
         this.state = state;
       },
       async mount() {
-        await this.battle_setup();
-        await this.battle_ready();
-        await this.battle_start();
+        await this.$store.dispatch('Battle_Setup');
+        await this.$store.dispatch('Battle_Ready');
         EventBus.$emit('Battle_Started');
       },
-      battle_setup() {
-        return new Promise((resolve) => {
-          this.$store.dispatch('Battle_Setup');
-          resolve();
+      async enemy_action() {
+        await this.hold(500);
+        this.$store.dispatch('Battle_Action_Enemy').then(() => {
+          EventBus.$emit('Battle:Enemy:Done');
+          this.actions_done();
         });
       },
-      battle_ready() {
-        return new Promise((resolve) => {
-          setTimeout(() => {
-            this.$store.dispatch('Battle_Ready');
-            resolve();
-          }, 3000);
-        });
+      async actions_done() {
+        await this.hold(500);
+        EventBus.$emit('Battle:Actions:Done');
       },
-      battle_start() {
+      battle_end() {
+        this.$store.dispatch('GameState', 'area');
+      },
+      hold(duration) {
         return new Promise((resolve) => {
-          setTimeout(() => {
-            this.$store.dispatch('Battle_Start');
-            resolve();
-          }, 3000);
+          setTimeout(() => resolve(), duration || 250);
         });
       },
     },
     components: {
-      Enemy, PlayerArea, Player
+      Field, Participant
     },
     created() {
       console.log('Battle.created')
@@ -98,6 +100,8 @@
     mounted() {
       console.log('Battle.mounted')
       this.mount();
+      
+      EventBus.$on('Battle:Action:Player', this.player_action);
     },
     updated() {
       console.log('Battle.updated')
@@ -112,6 +116,7 @@
   .BattleScreen {
     height: 100%;
     display: flex;
+    background: #191919;
 
     .screen {
       width: 100%;
@@ -121,10 +126,11 @@
       box-sizing: border-box;
     }
 
-    .Loading {
+    .Loading, .Reward, .GameOver {
       padding: 15px;
       align-items: center;
       justify-content: center;
+      color: #ccc;
     }
 
     .Battle {
@@ -132,11 +138,15 @@
       height: 100%;
       align-items: center;
       justify-content: space-between;
-      .Battle_Enemies {
+      .Battle_Actors {
         width: 100%;
+        max-width: 480px;
         display: flex;
         flex-flow: row;
-        justify-content: center;
+        justify-content: space-between;
+        .Participant {
+          width: calc(50% - 15px);
+        }
       }
       .Battle_Player {
         width: 100%;

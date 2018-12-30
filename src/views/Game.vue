@@ -1,15 +1,7 @@
 <template>
   <transition-group class="Game" v-bind:data-animation="animation" name="animation" tag="div" mode="out-in" appear>
-    <div class="GameScreen" v-if="state === 'intro'" key="intro">
-      <Player />
-      <p>I'm the intro screen</p>
-      <Inventory />
-      <p><button v-on:click="enter_new_area">Enter the dungeon</button></p>
-    </div>
-    <div class="GameScreen" v-if="state === 'area'" key="area">
-      <Player />
-      <Map />
-    </div>
+    <IntroScreen class="GameScreen" v-if="state === 'intro'" key="intro" />
+    <MapScreen class="GameScreen" v-if="state === 'area'" key="area" />
     <BattleScreen class="GameScreen" v-if="state === 'battle'" key="battle" />
     <div class="GameScreen" v-if="state === 'event'" key="event">
       <Player />
@@ -27,19 +19,18 @@
 </template>
 
 <script>
-  import Character from '@/components/Character.vue';
   import Player from '@/components/Player.vue';
   import Inventory from '@/components/Inventory.vue';
-  import PlayerArea from '@/components/PlayerArea.vue';
+  import IntroScreen from '@/screens/IntroScreen.vue';
   import BattleScreen from '@/screens/BattleScreen.vue';
-  import Map from '@/components/Map.vue';
+  import MapScreen from '@/screens/MapScreen.vue';
 
   export default {
     name: 'Game',
     data() {
       return {
-        state: 'area',
-        animation: 'down'
+        state: 'intro',
+        animation: 'fade'
       }
     },
     computed: {
@@ -62,12 +53,11 @@
       }
     },
     components: {
-      Character,
       Player,
       Inventory,
-      PlayerArea,
+      IntroScreen,
       BattleScreen,
-      Map,
+      MapScreen,
     },
     methods: {
       enter_new_area() {
@@ -118,6 +108,10 @@
       opacity: 0;
     }
 
+    &[data-animation="fade"] {
+      & > .animation-enter { opacity: 1; }
+      & > .animation-leave-to { opacity: 0; }
+    }
     &[data-animation="down"] {
       & > .animation-enter { transform: translateY(300px); }
       & > .animation-leave-to { transform: translateY(-300px); }
