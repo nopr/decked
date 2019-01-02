@@ -2,6 +2,7 @@
   <span class="effect" v-bind:data-animating="animating">
     <span class="effect-icon" v-bind:style="{ backgroundColor: effect.colour, maskImage: `url(${effect.image})` }"></span>
     <span class="effect-value" v-bind:style="{ color: effect.colour }">{{ effect.value }}</span>
+    <span class="effect-text"><b>{{ effect.name }}:</b> {{ effect.text }}</span>
   </span>
 </template>
 
@@ -14,7 +15,7 @@
     methods: {
       async animate(setting) {
         this.animating = setting;
-        await this.hold(150);
+        await this.hold(250);
         this.animating = false
       },
       hold(duration) {
@@ -56,38 +57,70 @@
 
 <style lang="scss">
 
-  @keyframes bouncing {
-    from, to {
-      transform: translateY(0) rotate(-15deg);
-      box-shadow: 0 2px 5px rgba(0,0,0,1);
-    }
-    50% {
-      transform: translateY(-5px) rotate(-15deg);
-      box-shadow: 0 7px 10px rgba(0,0,0,0.5);
-    }
-  }
-
   .effect {
     display: flex;
     flex-flow: row;
+    justify-content: flex-start;
+    align-items: flex-start;
+    z-index: 2;
+    position: relative;
     line-height: 20px;
     height: 20px;
-  }
-  .effect + .effect { 
-    margin-left: 5px;
+    margin: 4px 0;
+    cursor: pointer;
   }
   .effect-icon {
     mask-repeat: no-repeat;
     mask-size: contain;
-    background: black;
-    margin: 2px;
-    height: 16px;
-    width: 16px;
+    background: grey;
+    height: 20px;
+    width: 20px;
   }
   .effect-value {
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 10px;
+    text-shadow: 2px 2px rgba(0, 0, 0, 0.5), 1px 1px #000, 1px -1px #000, -1px -1px #000, -1px 1px #000;
+    position: absolute;
+    text-align: right;
+    padding: 0;
+    color: white !important;
+    width: 20px;
+    bottom: 0;
+    right: 0;
+  }
+  .effect-text {
+    display: none;
+    color: white;
+    width: 10em;
+    padding: 2px 5px;
     font-size: 13px;
-    font-weight: 900;
-    padding-right: 5px;
+    background: rgba(0,0,0,0.6);
+    border-radius: 3px;
+    box-shadow: 0 0 0 4px rgba(0,0,0,0.6);
+    text-shadow: 0 0 2px #000, 0 0 2px #000;
+    position: absolute;
+    margin-left: 15px;
+    left: 100%;
+    bottom: 0;
+  }
+  
+  .effect, .effect-icon, .effect-value {
+    transition: all 0.25s ease;
+  }
+  .effect-enter {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  .effect-enter-active {
+    transform: translateY(-5px);
+    .effect-icon { background-color: white !important; }
+    .effect-value { color: white !important; }
+  }
+  .effect-leave-to, .effect-leave-active {
+    opacity: 0;
+    transform: translateY(10px);
+    position: absolute;
   }
   
   .effect[data-animating="up"] {
@@ -99,6 +132,13 @@
     transform: translateY(5px);
     .effect-icon { background-color: black !important; }
     .effect-value { color: black !important };
+  }
+  
+  .effect:hover {
+    background: rgba(0,0,0,0.6);
+    border-radius: 3px;
+    box-shadow: 0 0 0 4px rgba(0,0,0,0.6);
+    .effect-text { display: block; }
   }
   
 </style>

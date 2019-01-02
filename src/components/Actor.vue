@@ -7,13 +7,10 @@
       <div class="title">
         {{ actor.title }}
       </div>
-      <div class="attributes" v-if="actor.attributes.length">
+      <div class="attributes" v-if="actor.attributes.length && !this.small">
         <span class="attribute" v-for="attribute in actor.attributes" v-bind:key="attribute.name">{{ attribute.name }}</span>
       </div>
     </div>
-    <transition-group class="effects" name="effect" tag="div">
-      <Effect v-for="(effect, key) in actor.effects" v-bind:key="effect.name" v-bind:effect="effect" />
-    </transition-group>
     <div class="stats">
       <ActorGold v-bind:actor="actor" />
       <ActorBlock v-bind:actor="actor" />
@@ -32,7 +29,10 @@
 
   export default {
     name: 'Actor',
-    props: ['actor'],
+    props: {
+      actor: null,
+      small: false
+    },
     components: { Effect, Stat, ActorHealth, ActorBlock, ActorGold },
     data() {
       return {
@@ -76,7 +76,7 @@
 
   .Actor {
 
-    min-width: 120px;
+    width: 100%;
     margin-right: 5px;
     padding: 10px;
     background: #111;
@@ -119,40 +119,11 @@
         content: ', ';
       }
     }
-
-    .effects {
-      display: flex;
-      flex-flow: row;
-      flex-grow: 1;
-      align-items: center;
-      height: 30px;
-    }
-    
-    .effects {
-      text-align: left;
-    }
-    .effect, .effect-icon, .effect-value {
-      transition: all 0.25s ease;
-    }
-    .effect-enter {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    .effect-enter-active {
-      transform: translateY(-5px);
-      .effect-icon { background-color: white !important; }
-      .effect-value { color: white !important; }
-    }
-    .effect-leave-to, .effect-leave-active {
-      opacity: 0;
-      transform: translateY(10px);
-      position: absolute;
-    }
     
     .stats {
       height: 25px;
+      margin-top: 5px;
       position: relative;
-      .ActorHealth, .ActorBlock, .ActorGold {}
     }
 
   }

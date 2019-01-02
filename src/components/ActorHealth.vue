@@ -1,9 +1,9 @@
 <template>
   <div class="ActorHealth" v-bind:data-animating="animating" v-bind:data-blocking="actor.block > 0 ? actor.block.toString().length : false">
-    <span class="ActorHealth-value">{{ actor.health.current }}/{{ actor.health.maximum }}</span>
+    <span class="ActorHealth-value">{{ health }}/{{ actor.health.maximum }}</span>
     <span class="ActorHealth-bar" v-bind:style="{ width: actor.health.current / actor.health.maximum * 100 + '%' }"></span>
   </div>
-</template>Actor-
+</template>
 
 <script>
   import EventBus from '@/eventbus';
@@ -17,6 +17,16 @@
         await this.hold(250);
         this.animating = false
       },
+      async tweenvalue(prop, newer) {
+        const existing = this[prop];
+        const diff = Math.abs(newer - existing);
+        const incr = (newer > existing);
+        const speed = 250 / diff;
+        for (let i = 0; i < diff; i++) {
+          this[prop] += (incr) ? 1 : -1;
+          await this.hold(speed); 
+        }
+      },
       hold(duration) {
         return new Promise((resolve) => {
           setTimeout(() => resolve(), duration || 250);
@@ -25,7 +35,8 @@
     },
     data() {
       return {
-        animating: false
+        animating: false,
+        health: this.actor.health.current,
       }
     },
     computed: {
@@ -37,6 +48,7 @@
       value(newer, older) {
         if (newer > older) { this.animate('up'); }
         if (newer < older) { this.animate('down'); }
+        this.tweenvalue('health', newer);
       }
     },
     created() {

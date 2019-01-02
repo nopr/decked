@@ -1,15 +1,20 @@
 <template>
-  <transition-group class="IntroScreen" v-bind:data-animation="animation" name="animation" tag="div" mode="out-in" appear>
-    <div class="screen IntroLevel" v-if="state === 0" key="level">
+  <transition-group class="EventScreen" v-bind:data-animation="animation" name="animation" tag="div" mode="out-in" appear>
+    <div class="screen EventPrimary" v-if="state === 0" key="level">
+      <div class="image"></div>
       <div class="content">
-        <h2>Sub-Level {{ level }}</h2>
-        <h1>Entryway</h1>
+        <h1>Lights out!</h1>
+        <p>You step into a long hallway. The lights are out. <i>"What's down there?"</i>, you wonder. You can't quite see down the corridor.</p>
+        <div class="button-group">
+          <button class="button is-event is-light" v-on:click="go(1, 'down')">Turn the lights on</button>
+          <button class="button is-event is-light" v-on:click="go(1, 'down')">Poke your head in</button>
+          <button class="button is-event" v-on:click="leave">Keep moving</button>
+        </div>
       </div>
     </div>
-    <div class="screen IntroEntry" v-if="state === 1" key="enter">
+    <div class="screen EventSecondary" v-if="state === 1" key="enter">
       <div class="content">
-        <Player />
-        <button v-on:click="enter">Enter</button>
+        <button v-on:click="leave">Leave</button>
       </div>
     </div>
   </transition-group>
@@ -20,7 +25,7 @@
   import Player from '@/components/Player.vue';
 
   export default {
-    name: 'IntroScreen',
+    name: 'EventScreen',
     data() {
       return {
         state: null,
@@ -40,7 +45,7 @@
         this.animation = animation;
         this.state = state;
       },
-      enter() {
+      leave() {
         this.$store.dispatch('GameState', 'area');
       },
       hold(duration) {
@@ -48,57 +53,54 @@
           setTimeout(() => resolve(), duration || 250);
         });
       },
-      async mounted() {
-        await this.go(0, 'up');
-        await this.hold(3000);
-        await this.go(1, 'down');
-      }
     },
     components: {
       Player
     },
     created() {
-      console.log('IntroScreen.created')
+      console.log('EventScreen.created')
     },
     mounted() {
-      console.log('IntroScreen.mounted')
-      this.mounted();
+      console.log('EventScreen.mounted')
+      this.go(0, 'up');
     },
     updated() {
-      console.log('IntroScreen.updated')
+      console.log('EventScreen.updated')
     },
     destroyed() {
-      console.log('IntroScreen.destroyed')
+      console.log('EventScreen.destroyed')
     }
   };
 </script>
 
 <style lang="scss">
-  .IntroScreen {
+  .EventScreen {
     height: 100%;
     display: flex;
-    background: #191919;
+    align-items: center;
 
     .screen {
       width: 100%;
       height: 100%;
+      max-width: 480px;
       display: flex;
       flex-flow: column;
       box-sizing: border-box;
       align-items: center;
       justify-content: center;
+      padding: 15px;
     }
     
-    .IntroLevel .content {
-      font-size: 18px;
-      font-weight: 200;
-      text-transform: uppercase;
-      letter-spacing: 2px;
-      color: #999;
-    }
-    
-    .IntroEntry button {
-      margin: 15px auto 0;
+    .content {
+      p, h1, h2, ul, ol {
+        text-shadow: 1px 1px rgba(0,0,0,0.5);
+      }
+      font-size: 16px;
+      border-radius: 5px;
+      background: #111;
+      padding: 15px;
+      color: #ccc;
+      .button-group { padding: 0; }
     }
 
     .animation-enter-active {

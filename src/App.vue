@@ -44,6 +44,21 @@
     opacity: 0;
   }
   
+  h1 {
+    font-size: 30px;
+    font-family: 'GameRegular';
+    font-weight: 600;
+    line-height: 30px;
+    margin: 0 0 15px;
+  }
+  h2 {
+    font-size: 20px;
+    font-family: 'GameRegular';
+    font-weight: 600;
+    line-height: 20px;
+    margin: 0 0 15px;
+  }
+  
   button, .button {
     -webkit-appearance: none;
     -webkit-font-smoothing: antialiased;
@@ -91,6 +106,7 @@
     padding: 5px;
     display: flex;
     flex-flow: column;
+    & > * { padding-left: 10px; padding-right: 10px; }
     & > * + * { margin-top: 5px; }
     &.is-row { flex-flow: row; }
     &.is-row > * + * { margin-top: 0; margin-left: 5px; }

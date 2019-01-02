@@ -5,15 +5,15 @@
       <svg class="step" v-bind:id="'step_' + stepkey" v-for="(step, stepkey) in area.steps" v-bind:key="'step'+stepkey" x="-25" y="-25">
         <svg class="point" v-bind:id="'step_'+stepkey+'_point_' + pointkey" v-for="(point, pointkey) in step" v-bind:key="'step'+stepkey+'point'+pointkey" width="50" height="50" v-bind:y="(100 / area.steps.length) * (stepkey + 0.5) + '%'" v-bind:x="(100 / step.length) * (pointkey + 0.5) + '%'" style="overflow: visible" v-bind:data-done="(area.history[stepkey] === pointkey)" v-bind:data-available="(area.active_step === null && stepkey === 0) || (area.active_step === stepkey - 1 && area.steps[area.active_step][area.active_point] && area.steps[area.active_step][area.active_point].connects[pointkey] === true)" v-on:click="goto(stepkey, pointkey, (area.active_step === null && stepkey === 0) || (area.active_step === stepkey - 1 && area.steps[area.active_step][area.active_point] && area.steps[area.active_step][area.active_point].connects[pointkey] === true))">
           <g class="group" v-bind:data-ready="point.ready">
-            <circle r="50%" cx="50%" cy="50%" fill="white"></circle> 
+            <rect x="-25%" y="0" width="150%" height="100%" fill="#222"></rect>
             <icon v-if="point.type === 'battle'" name="chess-knight" scale="2" x="14" y="7" />
             <icon v-if="point.type === 'event'" name="question" scale="2" x="13" y="9" />
             <icon v-if="point.type === 'camp'" name="campground" scale="2" x="9" y="11" />
             <icon v-if="point.type === 'shop'" name="store" scale="2" x="9" y="11" />
             <icon v-if="point.type === 'boss'" name="chess-rook" scale="2" x="13" y="8" />
             <g class="status">
-              <icon class="done" v-if="(area.history[stepkey] === pointkey)" scale="1" name="times" x="19" y="-10" />
-              <icon class="available" v-if="(area.active_step === null && stepkey === 0) || (area.active_step === stepkey - 1 && area.steps[area.active_step][area.active_point] && area.steps[area.active_step][area.active_point].connects[pointkey] === true)" name="caret-down" x="20" y="-5" />
+              <icon class="done" v-if="(area.history[stepkey] === pointkey)" scale="1" name="times" x="19" y="19" />
+              <icon class="available" v-if="(area.active_step === null && stepkey === 0) || (area.active_step === stepkey - 1 && area.steps[area.active_step][area.active_point] && area.steps[area.active_step][area.active_point].connects[pointkey] === true)" name="caret-down" x="20" y="20" />
             </g>
           </g>
         </svg>
@@ -112,7 +112,8 @@
 
   .Map {
 
-    background: #191919;
+    background: #111;
+    border-radius: 5px;
 
     #container {
       height: 100%;

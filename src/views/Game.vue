@@ -3,10 +3,7 @@
     <IntroScreen class="GameScreen" v-if="state === 'intro'" key="intro" />
     <MapScreen class="GameScreen" v-if="state === 'area'" key="area" />
     <BattleScreen class="GameScreen" v-if="state === 'battle'" key="battle" />
-    <div class="GameScreen" v-if="state === 'event'" key="event">
-      <Player />
-      <div>Event!</div>
-    </div>
+    <EventScreen class="GameScreen" v-if="state === 'event'" key="event" />
     <div class="GameScreen" v-if="state === 'shop'" key="shop">
       <Player />
       <div>Shop!</div>
@@ -23,6 +20,7 @@
   import Inventory from '@/components/Inventory.vue';
   import IntroScreen from '@/screens/IntroScreen.vue';
   import BattleScreen from '@/screens/BattleScreen.vue';
+  import EventScreen from '@/screens/EventScreen.vue';
   import MapScreen from '@/screens/MapScreen.vue';
 
   export default {
@@ -57,6 +55,7 @@
       Inventory,
       IntroScreen,
       BattleScreen,
+      EventScreen,
       MapScreen,
     },
     methods: {

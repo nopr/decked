@@ -45,7 +45,6 @@
     &[data-vertical] {
       flex-flow: column;
       .Actor { margin: 5px 0 0; position: relative; }
-      .Actor .effects { display: none; }
       .Actor .attributes { display: none; }
       .Actor .block { display: none; }
       .Actor .stats { margin-top: 5px; }

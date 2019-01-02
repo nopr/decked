@@ -1,11 +1,11 @@
 <template>
   <div class="Field">
-    <div class="energy">
-      <div class="energy-icon"></div>
-      <div class="energy-value">{{ energy }}</div>
+    <div class="energy button is-light">
+      {{ energy }} Energy
     </div>
     <div class="deck" v-bind:data-state="deck.state">
       <div class="label">Deck</div>
+      <div class="value">{{ deck.cards.length }}</div>
       <transition-group class="list" name="deck-card" v-bind:duration="250" tag="div">
         <Card v-for="card in deck.cards" v-bind:key="'deck'+card.id" v-bind:data-key="card.id" v-bind:card="card" small="true" />
       </transition-group>
@@ -17,6 +17,7 @@
     </div>
     <div class="pile" v-bind:data-state="pile.state">
       <div class="label">Pile</div>
+      <div class="value">{{ pile.cards.length }}</div>
       <transition-group class="list" name="pile-card" v-bind:duration="250" tag="div">
         <Card v-for="card in pile.cards" v-bind:key="card.id" v-bind:data-key="card.id" v-bind:card="card" small="true" />
       </transition-group>
@@ -65,9 +66,6 @@
         await this.hold();
         await this.shuffle();
         await this.hold();
-        await this.draw();
-        await this.draw();
-        await this.draw();
         await this.draw();
         await this.draw();
         await this.draw();
@@ -198,32 +196,21 @@
     box-sizing: border-box;
     height: 300px;
     
+    .energy, .endturn {
+      padding-left: 0;
+      padding-right: 0;
+      width: 8em;
+    }
+    
     .energy {
       position: absolute;
-      bottom: 25px;
-      right: calc(50% + 70px);
-      display: flex;
-      flex-flow: row-reverse;
-      -webkit-font-smoothing: antialiased;
-      .energy-icon {
-        width: 20px;
-        height: 20px;
-        mask-image: url('/images/cards/watch.svg');
-        mask-size: contain;
-        background-color: white;
-      }
-      .energy-value {
-        margin-left: 5px;
-        line-height: 20px;
-        font-weight: 900;
-        font-size: 16px;
-        color: white;
-      }
+      bottom: 15px;
+      right: calc(50% + 65px);
     }
     
     .endturn {
       position: absolute;
-      bottom: 5px;
+      bottom: 15px;
       left: calc(50% + 65px);
     }
 
@@ -247,8 +234,11 @@
         bottom: 0;
         left: 0;
       }
+      .label {
+        position: absolute;
+      }
       .Card {
-        box-shadow: 0 0 1px #777;
+        box-shadow: 0 0 1px rgba(0, 0, 0, 0.7);
         transition: all 0.25s ease;
         position: absolute;
         margin: 0;
@@ -281,32 +271,33 @@
       bottom: 0;
       left: 50%;
       margin-left: -55px;
+      .Card { background: #333; border-color: #888; }
     }
     .pile {
       bottom: 0;
       right: 50%;
       margin-right: -55px;
-      .Card { background: #ccc; }
+      .Card { background: #111; border-color: #222; }
     }
 
     .deck {
       .deck-card-enter {
         opacity: 1;
-        transform: translateY(-20px);
+        transform: translateY(-10px);
       }
       .deck-card-leave {
         opacity: 1;
-        transform: translateX(20px);
+        transform: translateY(-20px) translateX(-10px) rotate(-22.5deg);
       }
       .deck-card-leave-to {
-        opacity: 0;
-        transform: translateX(20px);
+        opacity: 1;
+        transform: translateY(-20px) translateX(-10px) rotate(-22.5deg);
       }
     }
     .pile {
       .pile-card-enter {
-        opacity: 0;
-        transform: translateY(-20px) translateX(10px) rotate(22.5deg);
+        opacity: 1;
+        transform: translateY(-20px);
       }
       .pile-card-leave {
         opacity: 1;
@@ -335,43 +326,34 @@
         transform: translateY(-10px);
       }
       .Card[data-staged] {
-        transform: translateY(-80px);
-        position: absolute;
-        margin-left: -65px;
-        left: 50%;
-        bottom: 0;
-        z-index: 2;
+        z-index: 30;
+        transform: translateY(-30px) rotate(15deg);
+        box-shadow: 3px 3px 10px rgba(0,0,0,0.5);
       }
       .hand-card-enter {
         opacity: 0;
-        transform: translateX(-80px) translateY(0px) rotate(22.5deg);
+        transform: translateY(80px);
       }
       .hand-card-leave {
+        z-index: 30;
         opacity: 1;
-        transform: translateY(-80px);
         position: absolute;
-        margin-left: -65px;
-        left: 50%;
-        bottom: 0;
-        z-index: 2;
+        transform: translateY(-30px) rotate(15deg);
+        box-shadow: 3px 3px 10px rgba(0,0,0,0.5);
       }
       .hand-card-leave-to {
+        z-index: 30;
         opacity: 0;
-        transform: translateY(-80px);
         position: absolute;
-        margin-left: -65px;
-        left: 50%;
-        bottom: 0;
-        z-index: 2;
+        transform: translateY(-10px) rotate(15deg);
+        box-shadow: 3px 3px 10px rgba(0,0,0,0.5);
       }
       .hand-card-leave-active {
+        z-index: 30;
         opacity: 0;
-        transform: translateY(-80px);
         position: absolute;
-        margin-left: -65px;
-        left: 50%;
-        bottom: 0;
-        z-index: 2;
+        transform: translateY(-10px) rotate(15deg);
+        box-shadow: 3px 3px 10px rgba(0,0,0,0.5);
       }
 
     }

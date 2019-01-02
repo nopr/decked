@@ -1,6 +1,6 @@
 <template>
   <div class="ActorBlock" v-bind:data-animating="animating" v-bind:data-blocking="actor.block > 0">
-    <span class="ActorBlock-value">({{ actor.block }})</span>
+    <span class="ActorBlock-value">({{ block }})</span>
     <span class="ActorBlock-bar" v-bind:style="{ width: actor.health.current / actor.health.maximum * 100 + '%' }"></span>
   </div>
 </template>
@@ -17,6 +17,16 @@
         await this.hold(250);
         this.animating = false
       },
+      async tweenvalue(prop, newer) {
+        const existing = this[prop];
+        const diff = Math.abs(newer - existing);
+        const incr = (newer > existing);
+        const speed = 250 / diff;
+        for (let i = 0; i < diff; i++) {
+          this[prop] += (incr) ? 1 : -1;
+          await this.hold(speed); 
+        }
+      },
       hold(duration) {
         return new Promise((resolve) => {
           setTimeout(() => resolve(), duration || 250);
@@ -25,7 +35,8 @@
     },
     data() {
       return {
-        animating: false
+        animating: false,
+        block: this.actor.block,
       }
     },
     computed: {
@@ -37,6 +48,7 @@
       value(newer, older) {
         if (newer > older) { this.animate('up'); }
         if (newer < older) { this.animate('down'); }
+        this.tweenvalue('block', newer);
       }
     },
     created() {
@@ -90,12 +102,12 @@
     }
     &[data-animating="up"] {
       .ActorBlock-value { color: white };
-      .ActorBlock-bar { border-color: white; }
+      .ActorBlock-bar { background: white; }
       .ActorBlock-icon { background: white; }
     }
     &[data-animating="down"] {
       .ActorBlock-value { color: white };
-      .ActorBlock-bar { border-color: white; }
+      .ActorBlock-bar { background: white; }
       .ActorBlock-icon { background: white; }
     }
   }

@@ -2,7 +2,12 @@
   <transition-group class="MapScreen" v-bind:data-animation="animation" name="animation" tag="div" mode="out-in" appear>
     <div class="screen" v-if="state === 0" key="map">
       <div class="MapLeft">
-        <Player vertical="true" />
+        <Avatar v-bind:actor="player" />
+        <Actor v-bind:actor="player" small="true" />
+        <div class="button-group">
+          <button>Inventory</button>
+          <button>Settings</button>
+        </div>
       </div>
       <div class="MapRight">
         <Map />
@@ -13,7 +18,8 @@
 
 <script>
   import EventBus from '@/eventbus';
-  import Player from '@/components/Player.vue';
+  import Avatar from '@/components/Avatar.vue';
+  import Actor from '@/components/Actor.vue';
   import Map from '@/components/Map.vue';
 
   export default {
@@ -50,7 +56,8 @@
       }
     },
     components: {
-      Player,
+      Actor,
+      Avatar,
       Map
     },
     created() {
@@ -76,16 +83,6 @@
     background: #191919;
     position: relative;
     
-    &:before, &:after {
-      z-index: 2;
-      content: '';
-      position: absolute;
-      height: 30px;
-      width: 100%;
-    }
-    &:before { top: 0; background: linear-gradient(#191919, transparent); }
-    &:after { bottom: 0; background: linear-gradient(transparent, #191919); }
-
     .screen {
       width: 100%;
       height: 100%;
@@ -99,7 +96,11 @@
     .MapLeft {
       padding: 15px 0;
       position: relative;
+      margin-right: 15px;
+      width: 120px;
       z-index: 3;
+      .Avatar { margin-bottom: 5px; }
+      .Actor { margin-bottom: 5px; }
     }
     .MapRight {
       padding: 15px 0;

@@ -1,7 +1,7 @@
 <template>
   <div class="ActorGold" v-bind:data-animating="animating">
     <span class="ActorGold-icon"></span>
-    <span class="ActorGold-value">&yen;{{ actor.gold }}</span>
+    <span class="ActorGold-value">&yen;{{ gold }}</span>
   </div>
 </template>
 
@@ -17,6 +17,16 @@
         await this.hold(250);
         this.animating = false
       },
+      async tweenvalue(prop, newer) {
+        const existing = this[prop];
+        const diff = Math.abs(newer - existing);
+        const incr = (newer > existing);
+        const speed = 250 / diff;
+        for (let i = 0; i < diff; i++) {
+          this[prop] += (incr) ? 1 : -1;
+          await this.hold(speed); 
+        }
+      },
       hold(duration) {
         return new Promise((resolve) => {
           setTimeout(() => resolve(), duration || 250);
@@ -25,7 +35,8 @@
     },
     data() {
       return {
-        animating: false
+        animating: false,
+        gold: this.actor.gold,
       }
     },
     computed: {
@@ -37,6 +48,7 @@
       value(newer, older) {
         if (newer > older) { this.animate('up'); }
         if (newer < older) { this.animate('down'); }
+        this.tweenvalue('gold', newer);
       }
     },
     created() {
@@ -46,7 +58,7 @@
       console.log('Stat.mounted')
     },
     updated() {
-      console.log('Stat.updated')
+      // console.log('Stat.updated')
     },
     destroyed() {
       console.log('Stat.destroyed')
