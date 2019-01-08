@@ -63,12 +63,9 @@
         for (let card in cards) {
           await this.gain(cards[card]);
         }
-        await this.hold();
+        await this.hold(250);
         await this.shuffle();
-        await this.hold();
-        await this.draw();
-        await this.draw();
-        await this.draw();
+        await this.hold(250);
       },
       gain(card) {
         return new Promise((resolve, reject) => {
@@ -102,6 +99,11 @@
           await this.drag(drawing);
         }
       },
+      async empty() {
+        this.utility.each(this.hand.cards, async (card, index) => {
+          await this.drop();
+        });
+      },
       shuffle() {
         return new Promise((resolve, reject) => {
           const shuffled = this.utility.shuffle(this.deck.cards);
@@ -130,6 +132,7 @@
         });
       },
       async play(card, index) {
+        if (card.cost > this.energy) { return }
         if (this.staged !== null) { return }
         this.staged = index;
         await this.hold(250);
@@ -137,16 +140,27 @@
           await this.hold(250);
           this.discard(card, this.staged);
           this.staged = null;
-          await this.hold(250);
-          await this.draw();
         });
       },
       async unstage(card) {
         this.discard(card, this.staged);
         this.staged = null;
       },
+      async beginturn() {
+        await this.hold(500);
+        await this.$store.dispatch('Battle_Start_Turn');
+        await this.draw();
+        await this.draw();
+        await this.draw();
+      },
       async endturn() {
-        
+        await this.$store.dispatch('Battle_End_Turn');
+        await this.empty();
+        await this.hold(500);
+        await this.$store.dispatch('Battle_Action_Enemy');
+        await this.hold(500);
+        await this.$store.dispatch('Battle_Start_Turn');
+        await this.beginturn();
       },
       hold(duration) {
         return new Promise((resolve) => {
@@ -157,13 +171,15 @@
     created() {
       console.log('Field.created')
     },
-    mounted() {
+    async mounted() {
       console.log('Field.mounted')
-      EventBus.$on('Battle_Started', async () => {
-        await this.hold();
-        this.fill(this.player.cards);
-      });
-      EventBus.$on('Battle:Actions:Done', this.draw);
+
+      await this.fill(this.player.cards);
+      await this.beginturn();
+      // EventBus.$on('Battle_Started', async () => {
+      //   await this.fill(this.player.cards);
+      //   await this.beginturn();
+      // });
     },
     updated() {
       console.log('Field.updated')

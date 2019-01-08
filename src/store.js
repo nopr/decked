@@ -235,6 +235,20 @@ export default new Vuex.Store({
       });
     },
 
+    Battle_End_Turn(context) {
+      return new Promise((resolve) => {
+        Vue.set(context.state.player, 'energy', 0);
+        resolve();
+      });
+    },
+
+    Battle_Start_Turn(context) {
+      return new Promise((resolve) => {
+        Vue.set(context.state.player, 'energy', 3);
+        resolve();
+      });
+    },
+
     Battle_Check(context) {
       let win = true;
       let lose = true;
@@ -259,6 +273,7 @@ export default new Vuex.Store({
     },
 
     async Card_Play(context, card) {
+      Vue.set(context.state.player, 'energy', context.state.player.energy - card.cost);
       await card.action.call(context, card);
       await this.dispatch('Battle_Check');
     },

@@ -27,7 +27,8 @@ const GenerateArea = (difficulty) => {
 
   const steps = difficulty - 1;
 
-  for (let step = 0; step < steps; step += 1) {
+  array.push([MakeNewPoint({ type: 'battle' })]);
+  for (let step = 1; step < steps; step += 1) {
     const points = [];
     const amount = Randomise(3) + 1;
     for (let item = 0; item < amount; item += 1) {

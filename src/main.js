@@ -1,5 +1,6 @@
 import Vue from 'vue';
 import VueLodash from 'vue-lodash';
+import VueKonva from 'vue-konva';
 
 import 'vue-awesome/icons';
 import Icon from 'vue-awesome/components/Icon.vue';
@@ -11,6 +12,7 @@ import router from './router';
 import store from './store';
 
 Vue.use(VueLodash, { name: 'utility' });
+Vue.use(VueKonva);
 Vue.use(svgjs);
 
 Vue.component('Icon', Icon);

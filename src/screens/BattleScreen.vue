@@ -137,12 +137,11 @@
     .Battle {
       height: 100%;
       align-items: center;
-      justify-content: space-between;
+      justify-content: center;
       .Battle_Actors {
         width: 100%;
         box-sizing: border-box;
         max-width: 480px;
-        background: #222;
         display: flex;
         flex-flow: row;
         justify-content: space-between;
