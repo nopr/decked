@@ -2,7 +2,6 @@
   <div class="MapView">
     <v-stage class="map" :config="{ width: 400, height: 600 }">
       <v-layer ref="stage">
-        <v-image v-for="background in backgrounds" :key="background.id" :config="background"></v-image>
         <v-circle v-for="room in rooms" :key="room.id" :config="room"></v-circle>
         <v-line v-for="line in lines" :key="line.id" :config="line"></v-line>
       </v-layer>
@@ -14,7 +13,6 @@
   export default {
     data() {
       return {
-        backgrounds: [],
         rooms: [],
         lines: []
       }
@@ -39,7 +37,7 @@
 
         // Create the series of rooms
         for (let f = FIRST_FLOOR; f < LAST_FLOOR + 1; f++) {
-          let rooms = this.random(1, MAX_WIDTH)
+          let rooms = this.random(3, MAX_WIDTH)
           if (f === FIRST_FLOOR) { rooms = 1 }
           if (f === LAST_FLOOR) { rooms = 1 }
           let created = []
@@ -51,20 +49,21 @@
               n: room_number++,
               y: f * 100 + 50,
               x: area[0] * 100 - 50,
+              a: area[0],
               radius: 20,
               fill: 'white',
               isfirst: false,
               islast: false,
               siblings: rooms - 1,
-              map_start: (r === 0),
+              map_start: (f === FIRST_FLOOR),
               map_finish: (f === LAST_FLOOR),
               entrances: [],
               exits: []
             }
-            // if (creating.siblings === 0) {
-            //   if (f === FIRST_FLOOR) { creating.x = 2.5 * 100 - 50 }
-            //   if (f === LAST_FLOOR) { creating.x = 2.5 * 100 - 50 }
-            // }
+            if (creating.siblings === 0) {
+              if (f === FIRST_FLOOR) { creating.x = 2.5 * 100 - 50 }
+              if (f === LAST_FLOOR) { creating.x = 2.5 * 100 - 50 }
+            }
             // creating.x = this.random(creating.x - 20, creating.x + 20)
             // creating.y = this.random(creating.y - 20, creating.y + 20)
             created.push(creating)
@@ -103,7 +102,6 @@
         }
 
         // Shuffle the rooms, so we can select at random
-        this.rooms = this.utility.shuffle(this.rooms)
         for (let r = 0; r < this.rooms.length; r++) {
           let room = this.rooms[r]
 
@@ -112,21 +110,23 @@
 
           let rooms_above = this.utility.filter(this.rooms, { 'f': room.f - 1 })
           let rooms_below = this.utility.filter(this.rooms, { 'f': room.f + 1 })
+          
+          // rooms that are not first and not last
+            // try to join straight down (x)
+            // try to join straight up (x)
+            
+          // rooms that are first have a 50% to join right
+          
+          // rooms that are last have a 50% to join left
 
           // Does not have an exit
           if (room.exits.length === 0) {
-            // Find out what rooms are nearby below
-            let below_down = this.utility.filter(rooms_below, { 'x': room.x })[0]
-            let below_left = this.utility.filter(rooms_below, { 'x': room.x - 100 })[0]
-            let below_right = this.utility.filter(rooms_below, { 'x': room.x + 100 })[0]
+            // try to join straight down (x)
           }
 
           // Does not have an entrance
           if (room.entrances.length === 0) {
-            // Find out what rooms are nearby above
-            let below_down = this.utility.filter(rooms_above, { 'x': room.x })[0]
-            let below_left = this.utility.filter(rooms_above, { 'x': room.x - 100 })[0]
-            let below_right = this.utility.filter(rooms_above, { 'x': room.x + 100 })[0]
+            // try to join straight up (x)
           }
 
         }
