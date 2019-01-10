@@ -2,29 +2,36 @@
   <div class="MapView">
     <button v-on:click="build">New Map</button>
     <div class="mapcontainer">
-      <v-stage ref="stage" class="mapcanvas" :config="canvasconfig" :style="{ backgroundColor: colour.background }">
-        <v-layer ref="decoration">
-          
-        </v-layer>
-        <v-layer ref="plotted">
-          <v-line v-for="border in borders" :key="border.id" :config="border"></v-line>
-          <v-line v-for="line in lines" :key="line.id" :config="line"></v-line>
-          <v-line v-for="path in paths" :key="path.id" :config="path"></v-line>
-        </v-layer>
-        <v-layer ref="rooms">
-          <v-circle v-for="room in rooms" :key="room.id" :config="shape_base(room)"></v-circle>
-          <v-circle v-for="room in rooms" :key="room.id" v-if="room.status ==='default'" :config="shape_default(room)"></v-circle>
-          <v-circle v-for="room in rooms" :key="room.id" v-if="room.status ==='available'" :config="shape_available(room)"></v-circle>
-          <v-shape v-for="room in rooms" :key="room.id" v-if="room.status ==='visited'" :config="shape_visited(room)"></v-shape>
-        </v-layer>
-        <v-layer ref="overlay">
-          <v-circle v-for="room in rooms" :key="room.id" :config="shape_overlay(room)" @mouseenter="room_on" @mouseleave="room_off" @click="room_visit" @tap="room_visit"></v-circle>
-        </v-layer>
-        <v-layer ref="markers">
-          <v-line v-if="markers.entry" :config="markers.entry"></v-line>
-          <v-line v-if="markers.exit" :config="markers.exit"></v-line>
-        </v-layer>
-      </v-stage>
+      <div class="mapleft"></div>
+      <div class="mapmiddle">
+        <v-stage ref="stage" class="mapcanvas" :config="canvasconfig">
+          <v-layer ref="decoration">
+            
+          </v-layer>
+          <v-layer ref="plotted">
+            <v-line v-for="border in borders" :key="border.id" :config="border"></v-line>
+            <v-line v-for="line in lines" :key="line.id" :config="line"></v-line>
+            <v-line v-for="path in paths" :key="path.id" :config="path"></v-line>
+          </v-layer>
+          <v-layer ref="rooms">
+            <v-circle v-for="room in rooms" :key="room.id" :config="room.appearance.point" @mouseenter="room_on" @mouseleave="room_off" @click="room_visit" @tap="room_visit"></v-circle>
+            <v-shape v-for="room in rooms" :key="room.id" v-if="room.status === 'visited'" :config="room.appearance.check"></v-shape>
+            <icon name="chess-knight" scale="2" x="14" y="7" />
+            <icon name="question" scale="2" x="13" y="9" />
+            <icon name="campground" scale="2" x="9" y="11" />
+            <icon name="store" scale="2" x="9" y="11" />
+            <icon name="chess-rook" scale="2" x="13" y="8" />
+          </v-layer>
+          <v-layer ref="overlay">
+            <!-- <v-circle v-for="room in rooms" :key="room.id" :config="shape_overlay(room)" @mouseenter="room_on" @mouseleave="room_off" @click="room_visit" @tap="room_visit"></v-circle> -->
+          </v-layer>
+          <v-layer ref="markers">
+            <v-line v-if="markers.entry" :config="markers.entry"></v-line>
+            <v-line v-if="markers.exit" :config="markers.exit"></v-line>
+          </v-layer>
+        </v-stage>
+      </div>
+      <div class="mapright"></div>
     </div>
   </div>
 </template>
@@ -39,8 +46,7 @@
         paths: [],
         markers: {
           entry: null,
-          exit: null,
-          checks: []
+          exit: null
         },
         canvasconfig: {
           width: 400,
@@ -52,25 +58,37 @@
           foreground_shadow: '#E0D7AD',
           markings: '#B09673',
           highlight: '#FF5F64',
-          highlight_lighter: '#ff7c81',
+          highlight_lighter: '#ff9397',
         },
         roomtypes: ['fight', 'fight', 'event', 'event', 'camp', 'shop']
       }
     },
     methods: {
       room_on(evt) {
-        let room = evt.target
-        if (room.attrs.status !== 'available') { return false }
+        let stage = this.$refs.stage
+        let i = this.utility.findIndex(this.rooms, { 'n': evt.target.attrs.n })
+        if (this.rooms[i].status === 'available') {
+          evt.target.to({
+            fill: this.colour.highlight_lighter,
+            duration: 0.1
+          })
+        }
       },
       room_off(evt) {
-        let room = evt.target
-        if (room.attrs.status !== 'available') { return false }
+        let i = this.utility.findIndex(this.rooms, { 'n': evt.target.attrs.n })
+        if (this.rooms[i].status === 'available') {
+          evt.target.to({
+            fill: this.colour.highlight,
+            duration: 0.1
+          })
+        }
       },
       room_visit(evt) {
         let room = evt.target
-        if (room.attrs.status !== 'available') { return false }
         let i = this.utility.findIndex(this.rooms, { 'n': evt.target.attrs.n })
+        if (this.rooms[i].status !== 'available') { return false }
         this.rooms[i].status = 'visited'
+        this.rooms[i].appearance.point.fill = this.colour.foreground
         for (let p = 0; p < this.paths.length; p++) {
           this.paths[p].stroke = this.colour.markings
           let begins = this.utility.find(this.rooms, { 'n': this.paths[p].begins })
@@ -85,6 +103,7 @@
         for (let r = 0; r < this.rooms.length; r++) {
           if (this.rooms[r].status === 'available') {
             this.rooms[r].status = 'default'
+            this.rooms[r].appearance.point.fill = this.colour.markings
           }
         }
         for (let p = 0; p < this.paths.length; p++) {
@@ -92,59 +111,26 @@
             this.paths[p].stroke = this.colour.highlight
             let finish = this.utility.findIndex(this.rooms, { 'n': this.paths[p].finishes })
             this.rooms[finish].status = 'available'
+            this.rooms[finish].appearance.point.fill = this.colour.highlight
           }
         }
       },
-      shape_base(room) {
+      makepoint(room) {
         return {
           x: room.x,
           y: room.y,
           n: room.n,
-          status: room.status,
-          radius: 12,
-          fill: this.colour.foreground
-        }
-      },
-      shape_default(room) {
-        return {
-          x: room.x,
-          y: room.y,
-          n: room.n,
-          status: room.status,
-          radius: 6,
+          radius: 10,
           fill: this.colour.markings,
-          stroke: this.colour.markings,
-          strokeWidth: 2
+          stroke: this.colour.foreground,
+          strokeWidth: 5
         }
       },
-      shape_available(room) {
+      makecheck(room) {
         return {
           x: room.x,
           y: room.y,
           n: room.n,
-          status: room.status,
-          radius: 6,
-          fill: this.colour.highlight,
-          stroke: this.colour.highlight,
-          strokeWidth: 2
-        }
-      },
-      shape_overlay(room) {
-        return {
-          x: room.x,
-          y: room.y,
-          n: room.n,
-          status: room.status,
-          radius: 20,
-          opacity: 0
-        }
-      },
-      shape_visited(room) {
-        return {
-          x: room.x,
-          y: room.y,
-          n: room.n,
-          status: room.status,
           stroke: this.colour.foreground,
           fill: this.colour.highlight,
           rotation: -45,
@@ -173,6 +159,36 @@
             context.fillStrokeShape(shape)
           }
         }
+      },
+      createroom(rooms, n, f, a) {
+        let creating = {
+          f: f,
+          n: n,
+          y: f * 100 + 50,
+          x: a * 100 - 50,
+          a: a,
+          isfirst: false,
+          islast: false,
+          status: 'default',
+          siblings: rooms - 1,
+          map_start: (f === 0),
+          map_finish: (f === 5),
+          roomtype: this.utility.sample(this.roomtypes),
+          entrances: [],
+          exits: [],
+          appearance: {
+            point: {},
+            check: {},
+            icon: {}
+          },
+          radius: 10,
+          fill: this.colour.foreground,
+          stroke: this.colour.markings,
+          strokeWidth: 3
+        }
+        if (f === 0) { creating.roomtype = 'fight'; creating.status = 'available'; }
+        if (f === 5) { creating.roomtype = 'boss' }
+        return creating
       },
       random(min, max) {
         return Math.floor(Math.random()*(max-min+1)+min);
@@ -261,37 +277,9 @@
           let created = []
           let areas = this.utility.shuffle([1, 2, 3, 4])
           for (let r = 0; r < rooms; r++) {
-            let area = this.utility.pullAt(areas, 0)
-            let creating = {
-              f: f,
-              n: room_number++,
-              y: f * 100 + 50,
-              x: area[0] * 100 - 50,
-              a: area[0],
-              isfirst: false,
-              islast: false,
-              status: 'default',
-              siblings: rooms - 1,
-              map_start: (f === FIRST_FLOOR),
-              map_finish: (f === LAST_FLOOR),
-              roomtype: this.utility.sample(this.roomtypes),
-              entrances: [],
-              exits: [],
-              radius: 10,
-              fill: this.colour.foreground,
-              stroke: this.colour.markings,
-              strokeWidth: 3
-            }
-            if (f === FIRST_FLOOR) {
-              creating.x = 2.5 * 100 - 50
-              creating.roomtype = 'fight'
-              creating.status = 'available'
-            }
-            if (f === LAST_FLOOR) {
-              creating.x = 2.5 * 100 - 50
-              creating.roomtype = 'boss'
-            }
-            created.push(creating)
+            let a = this.utility.pullAt(areas, 0)[0]
+            let n = room_number++
+            created.push(this.createroom(rooms, n, f, a))
           }
           let sorted = this.utility.sortBy(created, ['x'])
           sorted[0].isfirst = true
@@ -454,12 +442,26 @@
             }
           }
           if (room.f === FIRST_FLOOR) {
+            room.x = 2.5 * 100 - 50
             this.rooms[r].y = this.random(room.y + 30, room.y + 30)
             this.rooms[r].x = this.random(room.x - 30, room.x + 30)
           }
           if (room.f === LAST_FLOOR) {
+            room.x = 2.5 * 100 - 50
             this.rooms[r].y = this.random(room.y - 30, room.y - 30)
             this.rooms[r].x = this.random(room.x - 30, room.x + 30)
+          }
+        }
+
+        // Add visuals for the rooms
+        for (let r = 0; r < this.rooms.length; r++) {
+          // Add the base point shape
+          this.rooms[r].appearance.point = this.makepoint(this.rooms[r])
+          // Add the base check shape
+          this.rooms[r].appearance.check = this.makecheck(this.rooms[r])
+          // For the first room
+          if (this.rooms[r].f === FIRST_FLOOR) {
+            this.rooms[r].appearance.point.fill = this.colour.highlight
           }
         }
 
@@ -694,7 +696,44 @@
   .mapcontainer {
     width: 400px;
     height: 600px;
-    margin: 0 auto;
-  }  
+    margin: 50px auto 0;
+    position: relative;
+  }
+  .mapmiddle {
+    width: 400px;
+    position: relative;
+    z-index: 2;
+    background: #E3D2B4;
+    box-sizing: border-box;
+    box-shadow: inset 0 -15px 0 0 #F8F1EA, inset 0 15px 0 0 #F8F1EA, 0 10px 10px 0 rgba(0,0,0,0.25);
+    border-radius: 3px 3px 0 0;
+  }
+  .mapleft, .mapright {
+    background: #E3D2B4;
+    box-sizing: border-box;
+    box-shadow: inset 0 -15px 0 0 #F8F1EA, inset 0 15px 0 0 #F8F1EA;
+    width: 150px;
+    height: 600px;
+    position: absolute;
+    top: -29px;
+  }
+  .mapleft {
+    left: 0;
+    top: 21px;
+    transform: skewY(15deg);
+    box-shadow: inset 0 -10px 0 0 #c4bdb6, inset 0 10px 0 0 #c4bdb6, inset -10px 0 0 0 #c4bdb6;
+    background: #a5977d;
+    border-radius: 5px 0 5px 0;
+    z-index: 1;
+  }
+  .mapright {
+    right: 0;
+    top: 21px;
+    transform: skewY(-15deg);
+    box-shadow: inset 0 -10px 0 0 #c4bdb6, inset 0 10px 0 0 #c4bdb6, inset 10px 0 0 0 #c4bdb6;
+    background: #a5977d;
+    border-radius: 0 5px 0 5px;
+    z-index: 1;
+  }
 
 </style>
