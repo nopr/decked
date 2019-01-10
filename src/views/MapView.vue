@@ -2,14 +2,23 @@
   <div class="MapView">
     <button v-on:click="build">New Map</button>
     <div class="mapcontainer">
-      <v-stage class="mapcanvas" :config="{ width: 400, height: 600 }" :style="{ background: colour.background }">
+      <v-stage ref="stage" class="mapcanvas" :config="canvasconfig" :style="{ backgroundColor: colour.background }">
+        <v-layer ref="decoration">
+          
+        </v-layer>
         <v-layer ref="plotted">
           <v-line v-for="border in borders" :key="border.id" :config="border"></v-line>
           <v-line v-for="line in lines" :key="line.id" :config="line"></v-line>
           <v-line v-for="path in paths" :key="path.id" :config="path"></v-line>
         </v-layer>
         <v-layer ref="rooms">
-          <v-circle v-for="room in rooms" :key="room.id" :config="room"></v-circle>
+          <v-circle v-for="room in rooms" :key="room.id" :config="shape_base(room)"></v-circle>
+          <v-circle v-for="room in rooms" :key="room.id" v-if="room.status ==='default'" :config="shape_default(room)"></v-circle>
+          <v-circle v-for="room in rooms" :key="room.id" v-if="room.status ==='available'" :config="shape_available(room)"></v-circle>
+          <v-shape v-for="room in rooms" :key="room.id" v-if="room.status ==='visited'" :config="shape_visited(room)"></v-shape>
+        </v-layer>
+        <v-layer ref="overlay">
+          <v-circle v-for="room in rooms" :key="room.id" :config="shape_overlay(room)" @mouseenter="room_on" @mouseleave="room_off" @click="room_visit" @tap="room_visit"></v-circle>
         </v-layer>
         <v-layer ref="markers">
           <v-line v-if="markers.entry" :config="markers.entry"></v-line>
@@ -30,19 +39,141 @@
         paths: [],
         markers: {
           entry: null,
-          exit: null
+          exit: null,
+          checks: []
+        },
+        canvasconfig: {
+          width: 400,
+          height: 600,
         },
         colour: {
           background: '#E3D2B4',
           foreground: '#F7EFCA',
           foreground_shadow: '#E0D7AD',
           markings: '#B09673',
-          highlight: '#FF5F64'
+          highlight: '#FF5F64',
+          highlight_lighter: '#ff7c81',
         },
         roomtypes: ['fight', 'fight', 'event', 'event', 'camp', 'shop']
       }
     },
     methods: {
+      room_on(evt) {
+        let room = evt.target
+        if (room.attrs.status !== 'available') { return false }
+      },
+      room_off(evt) {
+        let room = evt.target
+        if (room.attrs.status !== 'available') { return false }
+      },
+      room_visit(evt) {
+        let room = evt.target
+        if (room.attrs.status !== 'available') { return false }
+        let i = this.utility.findIndex(this.rooms, { 'n': evt.target.attrs.n })
+        this.rooms[i].status = 'visited'
+        for (let p = 0; p < this.paths.length; p++) {
+          this.paths[p].stroke = this.colour.markings
+          let begins = this.utility.find(this.rooms, { 'n': this.paths[p].begins })
+          let finishes = this.utility.find(this.rooms, { 'n': this.paths[p].finishes })
+          if (begins && begins.status === 'visited' && finishes && finishes.status === 'visited') {
+            this.paths[p].stroke = this.colour.highlight
+          }
+          if (p === 0) {
+            this.paths[p].stroke = this.colour.highlight
+          }
+        }
+        for (let r = 0; r < this.rooms.length; r++) {
+          if (this.rooms[r].status === 'available') {
+            this.rooms[r].status = 'default'
+          }
+        }
+        for (let p = 0; p < this.paths.length; p++) {
+          if (this.paths[p].begins === evt.target.attrs.n) {
+            this.paths[p].stroke = this.colour.highlight
+            let finish = this.utility.findIndex(this.rooms, { 'n': this.paths[p].finishes })
+            this.rooms[finish].status = 'available'
+          }
+        }
+      },
+      shape_base(room) {
+        return {
+          x: room.x,
+          y: room.y,
+          n: room.n,
+          status: room.status,
+          radius: 12,
+          fill: this.colour.foreground
+        }
+      },
+      shape_default(room) {
+        return {
+          x: room.x,
+          y: room.y,
+          n: room.n,
+          status: room.status,
+          radius: 6,
+          fill: this.colour.markings,
+          stroke: this.colour.markings,
+          strokeWidth: 2
+        }
+      },
+      shape_available(room) {
+        return {
+          x: room.x,
+          y: room.y,
+          n: room.n,
+          status: room.status,
+          radius: 6,
+          fill: this.colour.highlight,
+          stroke: this.colour.highlight,
+          strokeWidth: 2
+        }
+      },
+      shape_overlay(room) {
+        return {
+          x: room.x,
+          y: room.y,
+          n: room.n,
+          status: room.status,
+          radius: 20,
+          opacity: 0
+        }
+      },
+      shape_visited(room) {
+        return {
+          x: room.x,
+          y: room.y,
+          n: room.n,
+          status: room.status,
+          stroke: this.colour.foreground,
+          fill: this.colour.highlight,
+          rotation: -45,
+          strokeWidth: 1,
+          lineCap: 'round',
+          lineJoin: 'round',
+          sceneFunc(context, shape) {
+            context.beginPath()
+            context.moveTo(0, -9)
+            context.lineTo(-3, -8)
+            context.lineTo(-3, -3)
+            context.lineTo(-8, -3)
+            context.lineTo(-9, 0)
+            context.lineTo(-8, 3)
+            context.lineTo(-3, 3)
+            context.lineTo(-3, 8)
+            context.lineTo(0, 9)
+            context.lineTo(3, 8)
+            context.lineTo(3, 3)
+            context.lineTo(8, 3)
+            context.lineTo(9, 0)
+            context.lineTo(8, -3)
+            context.lineTo(3, -3)
+            context.lineTo(3, -8)
+            context.closePath()
+            context.fillStrokeShape(shape)
+          }
+        }
+      },
       random(min, max) {
         return Math.floor(Math.random()*(max-min+1)+min);
       },
@@ -139,6 +270,7 @@
               a: area[0],
               isfirst: false,
               islast: false,
+              status: 'default',
               siblings: rooms - 1,
               map_start: (f === FIRST_FLOOR),
               map_finish: (f === LAST_FLOOR),
@@ -150,12 +282,15 @@
               stroke: this.colour.markings,
               strokeWidth: 3
             }
-            if (creating.siblings === 0) {
-              if (f === FIRST_FLOOR) { creating.x = 2.5 * 100 - 50 }
-              if (f === LAST_FLOOR) { creating.x = 2.5 * 100 - 50 }
+            if (f === FIRST_FLOOR) {
+              creating.x = 2.5 * 100 - 50
+              creating.roomtype = 'fight'
+              creating.status = 'available'
             }
-            if (f === FIRST_FLOOR) { creating.roomtype = 'fight' }
-            if (f === LAST_FLOOR) { creating.roomtype = 'boss' }
+            if (f === LAST_FLOOR) {
+              creating.x = 2.5 * 100 - 50
+              creating.roomtype = 'boss'
+            }
             created.push(creating)
           }
           let sorted = this.utility.sortBy(created, ['x'])
@@ -367,7 +502,8 @@
               room.x - 30, room.y - 30,
               // room.x - 40, room.y - 35
             ],
-            stroke: this.colour.markings,
+            finishes: room.n,
+            stroke: this.colour.highlight,
             dash: [0, 5],
             strokeWidth: 3,
             lineCap: 'round'
@@ -413,6 +549,7 @@
               room.x + 30, room.y + 30,
               // room.x + 40, room.y + 35,
             ],
+            finishes: room.n,
             stroke: this.colour.markings,
             dash: [0, 5],
             strokeWidth: 3,
@@ -488,6 +625,8 @@
                 mod2.x, mod2.y,
                 finish.x, finish.y
               ],
+              begins: room.n,
+              finishes: target.n,
               stroke: this.colour.markings,
               bezier: true,
               tension: 0.5,
@@ -538,8 +677,6 @@
         }
         this.markers.exit = exit
 
-        this.add_room_graphics()
-
       }
     },
     created() {
@@ -557,7 +694,7 @@
   .mapcontainer {
     width: 400px;
     height: 600px;
-    margin: 20px auto;
+    margin: 0 auto;
   }  
 
 </style>
