@@ -1,172 +1,224 @@
 <template>
   <div class="UI">
-
-    <div class="logo">
-      <span class="upper-text">Cavern</span>
-      <span class="lower-text">&middot; Crawl &middot;</span>
-    </div>
-
-    <button class="button">Button (Default)</button>
-    <button class="button is-bright">Button (Bright)</button>
-    <button class="button is-light">Button (Light)</button>
-
-    <div class="PlayCard">
-      <div class="meta">
-        <div class="name">Flash</div>
-        <div class="type">Skill</div>
-      </div>
-      <div class="cost">0</div>
-      <div class="text">
-        <p><i>Flashlight</i></p>
-        <p>Choose one enemy.<br />Apply <b>Blinded (1)</b>.</p>
-      </div>
-    </div>
-    <div class="PlayCard">
-      <div class="meta">
-        <div class="name">Shoot</div>
-        <div class="type">Attack</div>
-      </div>
-      <div class="cost">1</div>
-      <div class="text">
-        <p><i>Pistol (9mm)</i></p>
-        <p>Choose one enemy.<br />Deal <b>12 damage</b>.</p>
-      </div>
-    </div>
-    <div class="PlayCard">
-      <div class="meta">
-        <div class="name">Defend</div>
-        <div class="type">Skill</div>
-      </div>
-      <div class="cost">1</div>
-      <div class="text">
-        <p>Gain <b>5 block</b>.</p>
-      </div>
-    </div>
+    <v-stage ref="stage" class="area" :config="area" @dragstart="ondragstart" @dragmove="ondragmove" @dragend="ondragend">
+      <v-layer ref="cards">
+        <v-group v-for="(card, index) in cards" :key="card.id" :config="config('group', card, index)" @mouseenter="onmouseenter" @mouseleave="onmouseleave">
+          <v-rect :config="config('card', card)"></v-rect>
+          <v-text :config="config('name', card)"></v-text>
+          <v-text :config="config('cost', card)"></v-text>
+          <v-text :config="config('text', card)"></v-text>
+        </v-group>
+      </v-layer>
+      <v-layer ref="dragging">
+      </v-layer>
+    </v-stage>
   </div>
 </template>
 
 <script>
+  import card_pickaxe from "@/asset/images/cards/pickaxe.png"
+
+  const card_images = {
+    'pickaxe': makeimage(card_pickaxe)
+  }
+
+  function makeimage(base64) {
+    let img = new Image()
+    img.src = base64
+    return img
+  }
+
+  let vm = {}
+  export default {
+    name: 'Interface',
+    data() {
+      return {
+        area: {
+          width: 320,
+          height: 300,
+        },
+        cards: []
+      }
+    },
+    methods: {
+      ondragstart(evt) {
+        console.log('dragstart')
+        let group = evt.target
+        let dragging = vm.$refs.dragging.getNode()
+        let stage = vm.$refs.stage.getNode()
+
+        group.moveTo(dragging)
+        stage.draw()
+        group.to({
+          duration: 0.1,
+          easing: Konva.Easings.EaseIn,
+          scaleX: 1.5,
+          scaleY: 1.5,
+          offsetX: 18.75,
+          offsetY: 28.125
+        })
+      },
+      ondragmove(evt) {
+        let group = evt.target
+      },
+      ondragend(evt) {
+        console.log('dragend')
+        let group = evt.target
+        let cards = vm.$refs.cards.getNode()
+        let stage = vm.$refs.stage.getNode()
+
+        group.moveTo(cards)
+        stage.draw()
+        group.to({
+          duration: 0.5,
+          easing: Konva.Easings.ElasticEaseOut,
+          rotation: 0,
+          x: group.attrs.from_x,
+          y: group.attrs.from_y,
+          scaleX: 1,
+          scaleY: 1,
+          offsetX: 0,
+          offsetY: 0
+        })
+      },
+      onmouseenter(evt) {
+        console.log('onmouseenter')
+        let group = evt.target.parent
+        group.to({
+          duration: 0.5,
+          easing: Konva.Easings.ElasticEaseOut,
+          y: group.attrs.from_y - 10
+        })
+      },
+      onmouseleave(evt) {
+        console.log('onmouseleave')
+        let group = evt.target.parent
+        group.to({
+          duration: 0.5,
+          easing: Konva.Easings.ElasticEaseOut,
+          y: group.attrs.from_y
+        })
+      },
+      config(type, card, index) {
+        if (type === 'group') {
+          return {
+            x: 5 + (100 * index) + (5 * index),
+            y: 145,
+            from_x: 5 + (100 * index) + (5 * index),
+            from_y: 145,
+            draggable: true,
+            width: 100,
+            height: 140
+          }
+        }
+        if (type === 'card') {
+          console.log(card_images['pickaxe'])
+          return {
+            x: 0,
+            y: 0,
+            width: 100,
+            height: 140,
+            cornerRadius: 10,
+            fillPatternImage: card_images['pickaxe'],
+            fillPatternRepeat: 'no-repeat',
+            fillPatternScale: {
+              x: 0.25,
+              y: 0.25
+            },
+            shadow: '#000',
+            shadowBlur: 15,
+            shadowOffsetY: 20,
+            shadowOpacity: 0.2
+          }
+        }
+        if (type === 'name') {
+          return {
+            x: 5,
+            y: 85,
+            width: 90,
+            text: card.name,
+            fill: '#222',
+            fontFamily: 'GameRegular',
+            fontSize: 12,
+            fontStyle: 'normal',
+            align: 'center',
+          }
+        }
+        if (type === 'cost') {
+          return {
+            x: 10,
+            y: 10,
+            text: card.cost.toString(),
+            fill: '#222',
+            fontFamily: 'GameRegular',
+            fontSize: 14,
+            fontStyle: 'normal'
+          }
+        }
+        if (type === 'text') {
+          return {
+            x: 5,
+            y: 100,
+            width: 90,
+            text: card.text,
+            align: 'center',
+            fill: '#666',
+            fontFamily: 'GameRegular',
+            fontSize: 8,
+            lineHeight: 1.2
+          }
+        }
+      },
+    },
+    mounted() {
+      vm = this
+      // this.$store.dispatch('create_player');
+      setTimeout(() => {
+        vm.cards.push({
+          "name": "Boast",
+          "type": "skill",
+          "cost": 0,
+          "text": "-5 Health\nDraw a card",
+          "target": "enemy",
+          "image": "pickaxe.png"
+        })
+        vm.cards.push({
+          "name": "Uppercut",
+          "type": "attack",
+          "cost": 2,
+          "text": "8 damage, Stun (2)",
+          "target": "enemy",
+          "image": "pickaxe.png"
+        })
+        vm.cards.push({
+          "name": "Wild Slash",
+          "type": "attack",
+          "cost": 1,
+          "text": "12 Damage\n-3 Health",
+          "target": "enemy",
+          "image": "pickaxe.png"
+        })
+      }, 1000)
+    }
+  };
 </script>
 
 <style lang="scss">
-
   .UI {
     height: 100%;
+    overflow: auto;
   }
-
-  .button.is-bright {
-    text-shadow: 0 0 2px #a5e6ff;
-    text-shadow: none;
-    color: #a5e6ff;
-    &:hover {
-      text-shadow: 0 0 2px #a5e6ff;
-      color: #c8e7fb;
-    }
+  pre {
+    color: white;
+    overflow: auto;
   }
-
-  .logo {
-    margin: 50px auto;
-    position: relative;
-    display: flex;
-    flex-flow: column;
-    justify-content: center;
-    align-items: center;
-    .upper-text {
-      font-size: 21px;
-      font-weight: 600;
-      font-family: 'GameDisplay';
-      letter-spacing: 5px;
-      text-transform: lowercase;
-      text-shadow: 0 0 2px rgba(255,255,255,0.3), 0 0 4px rgba(255,255,255,0.3),;
-      color: white;
-    }
-    .middle-text {
-      font-size: 14px;
-      font-weight: 600;
-      font-family: 'GameDisplay';
-      letter-spacing: 1px;
-      text-transform: lowercase;
-      margin: 5px 0 7px;
-      color: #666;
-    }
-    .lower-text {
-      font-size: 25px;
-      font-weight: 600;
-      margin-top: 10px;
-      text-transform: uppercase;
-      // transform: rotate(10deg) translateY(2px) translateX(30px);
-      text-shadow: 0 0 2px #a5e6ff;
-      color: #a5e6ff;
-    }
+  .UI , .UI canvas {
+    font-family: 'GameRegular';
   }
-
-  .PlayCard {
-
-    -webkit-appearance: none;
-    -webkit-font-smoothing: antialiased;
-    cursor: pointer;
-    border: 0;
-    display: inline-flex;
-    flex-flow: column;
-    justify-content: space-between;
-    align-items: center;
-    text-decoration: none;
-    text-align: center;
-    font-family: inherit;
-    border: 0;
-    border-radius: 5px;
-    font-size: 14px;
-    font-weight: 900;
-    outline: 0;
-    margin: 5px;
-    width: 150px;
-    height: 200px;
-    box-sizing: border-box;
-    position: relative;
-    overflow: hidden;
-
-    color: #333;
-    text-shadow: 1px 1px #aaa;
-    background: linear-gradient(to top, #e9e6d7, #f7f5ee);
-
-    .meta {
-      padding: 20px 10px 0;
-    }
-    .meta .name {
-      font-size: 18px;
-      font-weight: 600;
-      font-family: 'GameDisplay';
-      text-transform: lowercase;
-      color: #333;
-      text-shadow: none;
-    }
-    .meta .type {
-      letter-spacing: 2px;
-      text-transform: uppercase;
-      text-shadow: none;
-      font-size: 10px;
-      opacity: 0.5;
-    }
-    .cost {
-      position: absolute;
-      left: 10px;
-      top: 10px;
-    }
-    .text {
-      padding: 0 10px 20px;
-      color: #333;
-      font-size: 14px;
-      font-weight: 400;
-      text-shadow: none;
-      line-height: 15px;
-      p { margin: 0; }
-      p + p { margin-top: 5px; }
-      i {
-        font-style: normal;
-        opacity: 0.5;
-      }
-    }
-
+  .area {
+    width: 320px;
+    height: 300px;
+    border: 1px solid white;
+    margin: 20px;
   }
-
 </style>
