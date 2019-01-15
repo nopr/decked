@@ -1,14 +1,24 @@
 <template>
   <div class="UI">
-    <button class="is-light" @click="drawcard">Draw</button>
+    <div style="display:flex;justify-content:center;flex-flow:row;padding: 10px 0;">
+      <button class="is-light" @click="drawcard">Draw</button>
+    </div>
     <v-stage ref="stage" class="area" :config="area" @dragstart="ondragstart" @dragmove="ondragmove" @dragend="ondragend">
+      <v-layer>
+        <v-rect ref="dropzone" :config="dropzone"></v-rect>
+      </v-layer>
       <v-layer ref="cards">
-        <v-group v-for="(card, index) in hand" :key="card.id" :config="config('group', card, index)" @mouseenter="onmouseenter" @mouseleave="onmouseleave">
+        <v-group v-for="(card, index) in cards" :key="card.ident" :config="config('group', card, index)" @mouseenter="onmouseenter" @mouseleave="onmouseleave">
+          <v-rect :config="config('bg', card)"></v-rect>
           <v-rect :config="config('card', card)"></v-rect>
           <v-text :config="config('name', card)"></v-text>
           <v-text :config="config('cost', card)"></v-text>
           <v-text :config="config('text', card)"></v-text>
         </v-group>
+      </v-layer>
+      <v-layer ref="discarded">
+      </v-layer>
+      <v-layer ref="holding">
       </v-layer>
       <v-layer ref="dragging">
       </v-layer>
@@ -18,15 +28,29 @@
 
 <script>
   import card_pickaxe from "@/asset/images/cards/pickaxe.png"
+  import card_rock from "@/asset/images/cards/rock.png"
 
   const card_images = {
-    'pickaxe': makeimage(card_pickaxe)
+    'pickaxe': makeimage(card_pickaxe),
+    'rock': makeimage(card_rock),
   }
 
   function makeimage(base64) {
     let img = new Image()
     img.src = base64
     return img
+  }
+
+  const deck = {
+    x: 55, y: 415
+  }
+  const discard = {
+    x: 165, y: 415
+  }
+  const available_hand = {
+    a: { x: 5, y: 235 },
+    b: { x: 110, y: 235 },
+    c: { x: 215, y: 235 }
   }
 
   let vm = {}
@@ -38,38 +62,21 @@
           width: 320,
           height: 560,
         },
-        hand: [],
+        dropzone: {
+          x: 7,
+          y: 7,
+          width: 306,
+          height: 216,
+          cornerRadius: 5,
+          stroke: '#444',
+          strokeWidth: 1,
+          dash: [2, 2]
+        },
         cards: []
       }
     },
     methods: {
-      drawcard() {
-        console.log('draw card')
-        const drawing = vm.cards.pop();
-        this.hand.unshift(drawing);
-      },
-      playcard(attrs) {
-        let cards = vm.$refs.cards.getNode()
-        console.log('playcard', attrs)
-        let card = attrs.c
-        let index = attrs.index
-        vm.hand[index] = null
-        console.log(index, cards)
-        if (index === 0) {
-          cards.children[1].to({
-            x: 50,
-            duration: 0.1,
-            easing: Konva.Easings.EaseIn,
-          })
-          cards.children[2].to({
-            x: 150,
-            duration: 0.1,
-            easing: Konva.Easings.EaseIn,
-          })
-        }
-      },
       ondragstart(evt) {
-        console.log('dragstart')
         let group = evt.target
         let dragging = vm.$refs.dragging.getNode()
         let stage = vm.$refs.stage.getNode()
@@ -86,32 +93,61 @@
         })
       },
       ondragmove(evt) {
-        let group = evt.target
-      },
-      async ondragend(evt) {
-        console.log('dragend')
-        let group = evt.target
-        let cards = vm.$refs.cards.getNode()
-        let stage = vm.$refs.stage.getNode()
-
-        group.moveTo(cards)
-        stage.draw()
-
-        if (group.attrs.y < 260) {
-          group.to({
-            duration: 0.25,
-            easing: Konva.Easings.EaseOut,
-            opacity: 0
+        let dropzone = vm.$refs.dropzone.getNode()
+        if (evt.target.attrs.y < 100) {
+          dropzone.to({
+            duration: 0,
+            stroke: '#fff'
           })
-          await vm.hold(250)
-          vm.playcard(group.attrs)
         } else {
+          dropzone.to({
+            duration: 0,
+            stroke: '#444'
+          })
+        }
+      },
+      ondragend(evt) {
+        let group = evt.target
+        let holding = vm.$refs.holding.getNode()
+        let stage = vm.$refs.stage.getNode()
+        let dropzone = vm.$refs.dropzone.getNode()
+        let discarded = vm.$refs.discarded.getNode()
+        
+        dropzone.to({
+          duration: 0,
+          stroke: '#444'
+        })
+
+        if (evt.target.attrs.y < 100) {
+          group.moveTo(discarded)
+          stage.draw()
+          group.setAttrs({
+            draggable: false,
+            data: {
+              held: null
+            }
+          })
           group.to({
             duration: 0.5,
             easing: Konva.Easings.ElasticEaseOut,
             rotation: 0,
-            x: group.attrs.from_x,
-            y: group.attrs.from_y,
+            x: discard.x,
+            y: discard.y - (discarded.children.length * 3),
+            scaleX: 1,
+            scaleY: 1,
+            offsetX: 0,
+            offsetY: 0
+          })
+          vm.sorthand()
+        } else {
+          group.moveTo(holding)
+          stage.draw()
+          group.to({
+            duration: 0.5,
+            easing: Konva.Easings.ElasticEaseOut,
+            rotation: 0,
+            x: group.attrs.data.held.x,
+            y: group.attrs.data.held.y,
             scaleX: 1,
             scaleY: 1,
             offsetX: 0,
@@ -120,37 +156,54 @@
         }
       },
       onmouseenter(evt) {
-        console.log('onmouseenter')
-        let group = evt.target.parent
-        group.to({
-          duration: 0.5,
-          easing: Konva.Easings.ElasticEaseOut,
-          y: group.attrs.from_y - 10
+        if (!evt.target.parent.attrs.draggable) {
+          return false
+        }
+        evt.target.parent.to({
+          duration: 0.2,
+          easing: Konva.Easings.ElasticOut,
+          y: evt.target.parent.attrs.data.held.y - 5
         })
       },
       onmouseleave(evt) {
-        console.log('onmouseleave')
-        let group = evt.target.parent
-        group.to({
-          duration: 0.5,
-          easing: Konva.Easings.ElasticEaseOut,
-          y: group.attrs.from_y
+        if (!evt.target.parent.attrs.draggable) {
+          return false
+        }
+        evt.target.parent.to({
+          duration: 0.2,
+          easing: Konva.Easings.ElasticIn,
+          y: evt.target.parent.attrs.data.held.y
         })
       },
       config(type, card, index) {
         if (type === 'group') {
-          let x = -100 
-          let y = 340
+          let x = deck.x
+          let y = deck.y - 50
           return {
             x: x,
             y: y,
-            c: card,
-            i: index,
-            from_x: x,
-            from_y: y,
-            draggable: true,
+            draggable: false,
             width: 100,
-            height: 140
+            height: 140,
+            opacity: 0,
+            data: {
+              card: card,
+              held: null
+            }
+          }
+        }
+        if (type === 'bg') {
+          return {
+            x: 0,
+            y: 0,
+            width: 100,
+            height: 140,
+            cornerRadius: 10,
+            fill: '#fff',
+            shadow: '#000',
+            shadowBlur: 5,
+            shadowOffsetY: 1,
+            shadowOpacity: 0.2
           }
         }
         if (type === 'card') {
@@ -160,16 +213,12 @@
             width: 100,
             height: 140,
             cornerRadius: 10,
-            fillPatternImage: card_images['pickaxe'],
+            fillPatternImage: card_images[card.image],
             fillPatternRepeat: 'no-repeat',
             fillPatternScale: {
               x: 0.25,
               y: 0.25
-            },
-            shadow: '#000',
-            shadowBlur: 15,
-            shadowOffsetY: 20,
-            shadowOpacity: 0.2
+            }
           }
         }
         if (type === 'name') {
@@ -177,7 +226,7 @@
             x: 5,
             y: 85,
             width: 90,
-            text: card.name,
+            text: card.name + ' (' + card.ident + ')', 
             fill: '#222',
             fontFamily: 'GameRegular',
             fontSize: 12,
@@ -210,96 +259,161 @@
           }
         }
       },
-      async fancards() {
+      async addcard(card) {
+        vm.cards.push(card)
         let cards = vm.$refs.cards.getNode()
-        // 5 + (100 * index) + (5 * index)
-        console.log(cards.children.length)
-        console.log(cards.children[0])
-        await vm.hold(1000)
-        console.log(cards.children[0])
-        cards.children[0].to({
-          duration: 1.5,
-          easing: Konva.Easings.ElasticEaseOut,
-          rotation: -15,
-          offsetY: -10,
-          x: 85,
-          from_x: 90,
-        })
         await vm.hold(100)
-        cards.children[1].to({
-          duration: 1.5,
-          easing: Konva.Easings.ElasticEaseOut,
-          rotation: 0,
-          x: 110,
-          from_x: 110,
-        })
-        await vm.hold(100)
-        cards.children[2].to({
-          duration: 1.5,
-          easing: Konva.Easings.ElasticEaseOut,
-          rotation: 15,
-          offsetY: 10,
-          x: 135,
-          from_x: 130,
-        })
-        await vm.hold(1500)
-        cards.children[0].to({
-          duration: 1,
-          easing: Konva.Easings.ElasticEaseOut,
-          rotation: 0,
-          offsetY: 0,
-          x: 5,
-          from_x: 5,
-        })
-        cards.children[2].to({
-          duration: 1,
-          easing: Konva.Easings.ElasticEaseOut,
-          rotation: 0,
-          offsetY: 0,
-          x: 215,
-          from_x: 215,
+        let added = cards.children[cards.children.length - 1]
+        added.to({
+          duration: 0.1,
+          easing: Konva.Easings.ElasticIn,
+          opacity: 1,
+          y: deck.y - (cards.children.length * 3)
         })
       },
-      showcards() {
-        return new Promise((resolve) => {
-          setTimeout(() => {
-            resolve()
-          }, 1000)
+      playcard(group) {
+
+      },
+      sorthand() {
+        let holding = vm.$refs.holding.getNode()
+        if (holding.children.length === 1) {
+          holding.children[0].to({
+            duration: 0.5,
+            easing: Konva.Easings.ElasticEaseInOut,
+            x: 110
+          })
+          holding.children[0].attrs.data.held.x = 110
+        }
+        if (holding.children.length === 2) {
+          holding.children[1].to({
+            duration: 0.5,
+            easing: Konva.Easings.ElasticEaseInOut,
+            x: 57.5
+          })
+          holding.children[1].attrs.data.held.x = 57.5
+          holding.children[0].to({
+            duration: 0.5,
+            easing: Konva.Easings.ElasticEaseInOut,
+            x: 162.5
+          })
+          holding.children[0].attrs.data.held.x = 162.5
+        }
+        if (holding.children.length === 3) {
+          holding.children[2].to({
+            duration: 0.5,
+            easing: Konva.Easings.ElasticEaseInOut,
+            x: 5
+          })
+          holding.children[2].attrs.data.held.x = 5
+          holding.children[1].to({
+            duration: 0.5,
+            easing: Konva.Easings.ElasticEaseInOut,
+            x: 110
+          })
+          holding.children[1].attrs.data.held.x = 110
+          holding.children[0].to({
+            duration: 0.5,
+            easing: Konva.Easings.ElasticEaseInOut,
+            x: 215
+          })
+          holding.children[0].attrs.data.held.x = 215
+        }
+      },
+      async drawcard() {
+        let stage = vm.$refs.stage.getNode()
+        let cards = vm.$refs.cards.getNode()
+        let holding = vm.$refs.holding.getNode()
+        let discarded = vm.$refs.discarded.getNode()
+        let group = cards.children[cards.children.length - 1]
+
+        let held = holding.children.length
+        let available = null
+
+        if (held === 3) { return false }
+
+        if (cards.children.length === 0) {
+          let amount = discarded.children.length;
+          for (let i = 0; i < amount; i++) {
+            let card = discarded.children[i]
+            card.to({
+              duration: 0.2,
+              easing: Konva.Easings.EaseInOut,
+              x: vm.utility.random(discard.x + 10, discard.x + 50),
+              y: vm.utility.random(discard.y - 10, discard.y - 50)
+            })
+          }
+          await vm.hold(500)
+          while (discarded.children.length > 0) {
+            let card = vm.utility.sample(discarded.children)
+            if (Number.isInteger(card)) { continue; }
+            card.moveTo(cards)
+            stage.draw()
+            card.to({
+              duration: 0.1,
+              easing: Konva.Easings.EaseOut,
+              x: deck.x,
+              y: deck.y - (cards.children.length * 3)
+            })
+            await vm.hold(100)
+          }
+          group = cards.children[cards.children.length - 1]
+          await vm.hold(250)
+        }
+        group.moveTo(holding)
+        stage.draw()
+        if (held === 0) { available = available_hand.a }
+        if (held === 1) { available = available_hand.b }
+        if (held === 2) { available = available_hand.c }
+        group.to({
+          duration: 0.2,
+          easing: Konva.Easings.EaseOut,
+          x: available.x,
+          y: available.y
         })
+        group.setAttrs({
+          draggable: true,
+          data: {
+            held: {
+              x: available.x,
+              y: available.y
+            }
+          }
+        })
+        vm.sorthand()
       },
       hold(n) {
         return new Promise((resolve) => {
           setTimeout(() => resolve(), n)
         })
       },
+
     },
     async mounted() {
       vm = this
-      vm.hand.push({
-        "name": "Boast",
-        "type": "skill",
-        "cost": 0,
-        "text": "-5 Health\nDraw a card",
-        "target": "enemy",
-        "image": "pickaxe.png"
-      })
-      vm.hand.push({
-        "name": "Uppercut",
-        "type": "attack",
-        "cost": 2,
-        "text": "8 damage, Stun (2)",
-        "target": "enemy",
-        "image": "pickaxe.png"
-      })
-      vm.hand.push({
-        "name": "Wild Slash",
-        "type": "attack",
-        "cost": 1,
-        "text": "12 Damage\n-3 Health",
-        "target": "enemy",
-        "image": "pickaxe.png"
-      })
-      await vm.fancards()
+      for (let n = 1; n < 5; n++) {
+        await vm.addcard({
+          "ident": n,
+          "name": "Slash",
+          "type": "attack",
+          "cost": 1,
+          "text": "Deal 8 Damage",
+          "target": "enemy",
+          "image": "pickaxe"
+        })
+      }
+      for (let n = 5; n < 9; n++) {
+        await vm.addcard({
+          "ident": n,
+          "name": "Defend",
+          "type": "attack",
+          "cost": 1,
+          "text": "Gain 6 Block",
+          "target": "enemy",
+          "image": "rock"
+        })
+      }
+      // await vm.shuffle()
+      // await vm.draw(3)
     }
   };
 </script>
@@ -319,7 +433,7 @@
   .area {
     width: 320px;
     height: 560px;
+    margin: 0 auto;
     border: 1px solid white;
-    margin: 20px auto;
   }
 </style>
